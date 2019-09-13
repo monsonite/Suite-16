@@ -7,6 +7,8 @@ Its name pays homage to Steve Wozniak's "Sweet-16" a virtual 16-bit machine that
 
 The instruction set and architecture for "Suite-16" was inspired by Woz's Sweet-16
 
+I am most indebted to Marcel van Kervinck and Dieter Muller for their shared work that has inspired this project
+
 Having studied other TTL computer projects, it seems that a 4-bit slice is a practical and maneagable way to proceed.
 
 Many TTL ICs come in 4-bit versions - including registers, counters, adders and multiplexers. A 4-bit slice can be made from less than 20 ICs all in 16 pin packages, so the circuit design can be fairly compact, and easy to handle, fitting onto a 10x10 pcb. 
