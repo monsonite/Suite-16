@@ -18,8 +18,16 @@ The design allows the bitwise logical functions AND OR XOR plus ADD add SUB
 
 The design is created as a sub-circuit using "Digital" as alu_slice_1.dig and is the starting point for the 16-bit ALU 16_bit_alu.dig
 
-To turn this into a cpu, I have added a program counter, a ROM, a register file (16 registers of 4 bits) and some control logic. The file is 4_bit_cpu.dig
+I thought it best to start off with a 4-bit cpu - which can then be extended when the instruction set and architecture have been thoroughly thrashed out.
 
+To turn the ALU bitslice into a cpu, I have added a program counter, a ROM, a register file (16 registers of 4 bits) and some control logic. The file is 4_bit_cpu.dig
+
+The instruction set is very minimal - just to get something running - in hex:
+
+0x   Load accumulator with 4-bit immediate value x from ROM
+Cn   Store the accumulator into register n.
+8n   Add the register n to the accumulator.
+00   Reset the PC to zero - and start again
 
 Misc Notes
 
