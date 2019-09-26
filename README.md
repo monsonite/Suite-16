@@ -1,7 +1,27 @@
 # Suite-16
-Logic design, schematics and code for 16-bit TTL computer based on 4-bit slice
+
+13-9-19
 
 Suite-16 is a design in progress for a 16-bit TTL computer based on a 4-bit bitslice.
+
+Having studied other TTL computer projects, it seems that a 4-bit slice is a practical and maneagable way to proceed.
+
+Many TTL ICs come in 4-bit versions - including registers, counters, adders and multiplexers - conveniently all in 16 pin DIL packages.
+
+A 4-bit slice can be made from less than 20 ICs all in 16 pin packages, so the circuit design can be fairly compact, and easy to handle, fitting onto a 10x10 pcb. 
+
+26-9-19
+
+I have started with a 4-bit ALU which is based on 4 off 74xx153 multiplexers and 74xx283 4-bit adder - based on the design by Dieter Muller from his article here: http://www.6502.org/users/dieter/a1/a1_4.htm
+
+The design allows the bitwise logical functions AND OR XOR plus ADD add SUB
+
+The design is created as a sub-circuit using "Digital" as alu_slice_1.dig and is the starting point for the 16-bit ALU 16_bit_alu.dig
+
+
+Misc Notes
+
+Logic design, schematics and code for 16-bit TTL computer based on 4-bit slice
 
 Its name pays homage to Steve Wozniak's "Sweet-16" a virtual 16-bit machine that was used in Apple II.
 
@@ -9,9 +29,7 @@ The instruction set and architecture for "Suite-16" was inspired by Woz's Sweet-
 
 I am most indebted to Marcel van Kervinck and Dieter Muller for their shared work that has inspired this project
 
-Having studied other TTL computer projects, it seems that a 4-bit slice is a practical and maneagable way to proceed.
 
-Many TTL ICs come in 4-bit versions - including registers, counters, adders and multiplexers. A 4-bit slice can be made from less than 20 ICs all in 16 pin packages, so the circuit design can be fairly compact, and easy to handle, fitting onto a 10x10 pcb. 
 
 Sections of the design can be breadboarded to check for correct operation, or simulated using a package like "Digital"
 
