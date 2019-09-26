@@ -25,9 +25,16 @@ To turn the ALU bitslice into a cpu, I have added a program counter, a ROM, a re
 The instruction set is very minimal - just to get something running - in hex:
 
 0x   Load accumulator with 4-bit immediate value x from ROM
+
 Cn   Store the accumulator into register n.
+
 8n   Add the register n to the accumulator.
+
 00   Reset the PC to zero - and start again
+
+The design will be extended to allow for register indirect addressing and immediate modes.
+
+Currently the registers can only be loaded with an immediate that has been previously loaded into the accumulator. This may be improved by having an immediate mode that uses the PC to point to the next word in ROM.
 
 Misc Notes
 
