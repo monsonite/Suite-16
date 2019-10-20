@@ -1,5 +1,59 @@
 # Suite-16
 
+Suite-16 is a project to create a working 16-bit computer system from scratch.
+
+It will involve logic design, software simulation, modelling on FPGA in verilog, circuit and pcb design, building in TTL and a whole bunch of other skills.
+
+I have started a project on Hackaday.io where you can follow the progress.  https://hackaday.io/project/168025-suite-16
+
+I now have a working cpu simulator that runs on any Arduino compatible board and will print out Hello World! to the serial terminal - you can find it in the uploaded files as Suite_16_Hello_World_1.ino
+
+Suite-16 is based on Steve Wozniak's Sweet-16 virtual 16-bit cpu which he wrote for Apple II
+
+It has a minimum instruction set of just 31 instructions. AC is the Accumulator R0, Rn are general purpose registers R1 to R15
+
+/* Suite-16 Instructions
+
+Register OPS-
+     0n        ---       --     Non-Register Ops
+     1n        SET       Rn     Constant  (Set)         Rn = @(PC+1)
+     2n        LD        Rn     (Load)                  AC = Rn
+     3n        ST        Rn     (Store)                 Rn = AC
+     4n        LD        @Rn    (Load Indirect)         AC = @Rn
+     5n        ST        @Rn    (Store Indirect)        @Rn = AC
+     6n        PUSH      @Rn    Push AC                 @Rn = AC  Rn = Rn + 1 
+     7n        POP       @Rn    Pop  AC                 AC = @Rn  Rn = Rn - 1
+     8n        AND       Rn     (AND)                   AC = AC & Rn 
+     9n        OR        Rn     (OR)                    AC = AC | Rn 
+     An        ADD       Rn     (Add)                   AC = AC + Rn
+     Bn        SUB       Rn     (Sub)                   AC = AC - Rn
+     Cn        INV       Rn     (Invert)                Rn = ~Rn
+     Dn        DCR       Rn     (Decrement)             Rn = Rn - 1
+     En        INR       Rn     (Increment)             Rn = Rn + 1
+     Fn        XOR       Rn     (XOR)                   AC = AC ^ Rn
+   
+  
+    
+Non-register OPS-
+     00        JMP    16-bit                        Target = @(PC+1)
+     01        BGT    AC>0                          Target = IR7:0
+     02        BLT    AC<0                          Target = IR7:0
+     03        BNE    AC!=0                         Target = IR7:0
+     04        BEQ    AC=0                          Target = IR7:0
+     05        BGE    AC>=0                         Target = IR7:0
+     06        BLT    AC<=0                         Target = IR7:0
+     07        BRA    Always                        Target = IR7:0
+     08        CALL   16-bit                        Target = @(PC+1)
+     09        RET    Return
+     0A        IN                                   AC = getchar()
+     0B        OUT                                  putchar(AC)
+     0C                         (Unassigned)  
+     0D                         (Unassigned)
+     0E                         (Unassigned)
+     0F        NOP                                  AC &= AC
+   
+   */
+
 13-9-19
 
 Suite-16 is a design in progress for a 16-bit TTL computer based on a 4-bit bitslice.
