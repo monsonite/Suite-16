@@ -6,7 +6,13 @@ It will involve logic design, software simulation, modelling on FPGA in verilog,
 
 I have started a project on Hackaday.io where you can follow the progress.  https://hackaday.io/project/168025-suite-16
 
-I now have a working cpu simulator that runs on any Arduino compatible board and will print out Hello World! to the serial terminal - you can find it in the uploaded files as Suite_16_Hello_World_1.ino
+I now have a working cpu simulator that runs on any Arduino compatible board. You can use a standard Arduino UNO or MSP430 Launchpad using Energia, but for ultimate speed an STM32F743 Nucleo board running at 400MHz.
+
+Regardless of your board, the aim is to make the softwate accessible to anyone who can download the Arduino IDE and find a compatible board.
+
+The first simulated program printed out Hello World! to the serial terminal - you can find it in the uploaded files as Suite_16_Hello_World_1.ino
+
+Shortly after that I developed a very crude routine to print decimal integers to the terminal. 
 
 Suite-16 is based on Steve Wozniak's Sweet-16 virtual 16-bit cpu which he wrote for Apple II
 
