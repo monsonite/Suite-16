@@ -1,0 +1,182 @@
+0001   0000             ; ### NOTE ###
+0002   0000             ; to make this program compile correctly and work
+0003   0000             ; change .ino sketch: 		case 0x7:  addr = M[PC] ;  PC = addr ; break ;  // 16-bit JMP	(remove PC++)
+0004   0000             ; change TASM16.TAB: 		CALL *        08 2 NOP 1		(call uses lsb of opcode)
+0005   0000             ; assemble with command: tasm -s -h -c -g0 -t16 hello_shift.asm out.hex
+0006   0000             ; generate MEM-array with command: binToMem.exe < hello_shift.lst > output
+0007   0000             ; paste code from 'output' in .ino sketch
+0008   0000             ; code is not really shifting, it's just transferring the msb from one register to the lsb of another register 
+0009   0000             
+0010   0000             EOS:         .EQU    $0000            	;End of string
+0011   0000             
+0012   0000             .org $0000
+0013   0000             start:
+0014   0000 0F 00           NOP                     ; Leave this location free for possible branch
+0015   0001 10 00 00 3E 	SET R0,  62             ; > cursor
+0016   0003 0C 00       	OUT						; Print cursor
+0017   0004 0D 00       	IN						; Getchar
+0018   0005             	
+0019   0005 11 00 02 00 	SET R1, 512			    ; R1 points to char buffer
+0020   0007             	
+0021   0007             loop1:	
+0022   0007 41 00       	LD R0, @R1				; get first character
+0023   0008 0C 00       	OUT                     ; output character
+0024   0009 E1 00       	INC R1
+0025   000A 01 07       	BGT loop1				; get characters until you find an EOS
+0026   000B 00 40       	BRA GETHEX
+0027   000C 0F 00       	NOP
+0028   000D 0F 00       	NOP
+0029   000E 0F 00       	NOP
+0030   000F 0F 00       	NOP
+0031   0010             
+0032   0010             PRINTNUM:
+0033   0010             
+0034   0010                 ;Prints out a 5 digit decimal number to the terminal according to contents of R0
+0035   0010                 ; Leading zeroes are not suppressed
+0036   0010                 ;  R1 = Decimation Value
+0037   0010                 ;  R2 = digit 
+0038   0010                 ;  R3 = 0x30
+0039   0010                 ;  R4 = temporary storage for accumulator (decimated value)
+0040   0010             
+0041   0010 12 00 00 00 	SET R2, 0
+0042   0012 13 00 00 30 	SET R3, 48
+0043   0014             	
+0044   0014 11 00 27 10 	SET R1, 10000
+0045   0016 08 00 00 30 	CALL decimate
+0046   0018             	
+0047   0018 11 00 03 E8 	SET R1, 1000
+0048   001A 08 00 00 30 	CALL decimate
+0049   001C             	
+0050   001C 11 00 00 64 	SET R1, 100
+0051   001E 08 00 00 30 	CALL decimate
+0052   0020             	
+0053   0020 11 00 00 0A 	SET R1, 10
+0054   0022 08 00 00 30 	CALL decimate
+0055   0024             	
+0056   0024 A3 00       	ADD R3
+0057   0025 0C 00       	OUT
+0058   0026 B4 00       	SUB R4
+0059   0027             	
+0060   0027 10 00 00 0A 	SET R0, 10				;CR
+0061   0029 0C 00       	OUT
+0062   002A 10 00 00 0D 	SET R0, 13				;LF
+0063   002C 0C 00       	OUT
+0064   002D 00 00       	BRA start
+0065   002E             	
+0066   002E 0F 00       	NOP
+0067   002F 0F 00       	NOP
+0068   0030             
+0069   0030             decimate:
+0070   0030             
+0071   0030 B1 00       	SUB R1
+0072   0031 02 34           BLT value
+0073   0032 E2 00           INC R2
+0074   0033 00 30           BRA decimate	
+0075   0034             	
+0076   0034             value:
+0077   0034             
+0078   0034 34 00       	ST R4, R0
+0079   0035 22 00       	LD R0, R2
+0080   0036 A3 00       	ADD R3 					; make R0 a printable digit
+0081   0037 0C 00       	OUT						; print a digit
+0082   0038             	
+0083   0038 24 00       	LD R0, R4
+0084   0039 A1 00       	ADD R1
+0085   003A 12 00 00 00 	SET R2, 0				; reset R2
+0086   003C             	
+0087   003C 09 00       	RET
+0088   003D 0F 00       	NOP
+0089   003E 0F 00       	NOP
+0090   003F 0F 00       	NOP
+0091   0040             	
+0092   0040             GETHEX:
+0093   0040             
+0094   0040             			; Accepts a hexadecimal number up to FFFF from terminal input buffer
+0095   0040             			; converts it to an integer and puts it into register R0
+0096   0040             			; It can then be printed out as a decimal using PRINTNUM - for checking integrity
+0097   0040             			; R1 is the pointer in the text buffer - which starts at 0x0200
+0098   0040             			; R4 is used as a temporary store for the character in the accumulator R0
+0099   0040             			; R5 is used in the "Times 16" routine
+0100   0040             			; R7 is used to accumulate the powers of 16 when forming the integer in R0
+0101   0040             	
+0102   0040 11 00 02 00 	SET R1, 512				; R1 is start of text buffer
+0103   0042 17 00 00 00 	SET R7, 0				; Clear R7
+0104   0044             
+0105   0044             nextchar:
+0106   0044             
+0107   0044 41 00       	LD R0, @R1
+0108   0045 34 00       	ST R4, R0
+0109   0046 E1 00       	INC R1
+0110   0047 41 00       	LD R0, @R1				; get the next character
+0111   0048             	
+0112   0048 0B 30       	SBI 48					; Is it bigger than 0x30?
+0113   0049 02 55       	BLT quit
+0114   004A 0B 17       	SBI 23					; Is is bigger than ascii 'F'
+0115   004B 03 55       	BGE quit
+0116   004C             	
+0117   004C 08 00 00 59 	CALL modify
+0118   004E             	
+0119   004E A7 00       	ADD R7
+0120   004F A0 00       	ADD R0					; 2X
+0121   0050 A0 00       	ADD R0					; 4X
+0122   0051 A0 00       	ADD R0					; 8X
+0123   0052 A0 00       	ADD R0					; 16X
+0124   0053             	
+0125   0053 37 00       	ST  R7, R0				; R7 is the accumulating sum
+0126   0054             	
+0127   0054 00 44       	BRA nextchar
+0128   0055             	
+0129   0055             quit:	
+0130   0055 08 00 00 59 	CALL modify
+0131   0057             	
+0132   0057 A7 00       	ADD R7					; Add in the final digit
+0133   0058 00 10       	BRA PRINTNUM			; Print it out in decimal
+0134   0059             	
+0135   0059             modify:
+0136   0059             
+0137   0059             		; If R0 = 0-9 subtract 0x30 to form a number 0-9
+0138   0059             		; If R0 = A-F subtract 0x37 to form a number 10-15
+0139   0059             	
+0140   0059 24 00       	LD R0, R4				; Get R0 back from R4
+0141   005A 0B 40       	SBI  64					; Is it bigger than 0x40?
+0142   005B 02 5E       	BLT  decimal			; must be a decimal 0-9
+0143   005C 0A 09       	ADI  9                  ; Add 9 to turn R0 into 10 -15
+0144   005D 00 60       	BRA endmodify
+0145   005E             	
+0146   005E             decimal: 
+0147   005E             
+0148   005E 24 00       	LD R0, R4				; Get R0 back from R4
+0149   005F 0B 30       	SBI 48					; convert to a decimal number
+0150   0060             	
+0151   0060             endmodify:
+0152   0060             
+0153   0060 09 00       	RET
+0154   0061 0F 00       	NOP
+0155   0062 0F 00       	NOP
+0156   0063 0F 00       	NOP
+0157   0064 0F 00       	NOP
+0158   0065 0F 00       	NOP
+0159   0066             	
+0160   0066             	
+0161   0066             		
+0162   0066             
+0163   0066             	
+0164   0066             .end	
+ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+-----------------------------------------------------
+0000  0F 00 10 00 00 3E 0C 00 0D 00 11 00 02 00 41 00
+0010  0C 00 E1 00 01 07 00 40 0F 00 0F 00 0F 00 0F 00
+0020  12 00 00 00 13 00 00 30 11 00 27 10 08 00 00 30
+0030  11 00 03 E8 08 00 00 30 11 00 00 64 08 00 00 30
+0040  11 00 00 0A 08 00 00 30 A3 00 0C 00 B4 00 10 00
+0050  00 0A 0C 00 10 00 00 0D 0C 00 00 00 0F 00 0F 00
+0060  B1 00 02 34 E2 00 00 30 34 00 22 00 A3 00 0C 00
+0070  24 00 A1 00 12 00 00 00 09 00 0F 00 0F 00 0F 00
+0080  11 00 02 00 17 00 00 00 41 00 34 00 E1 00 41 00
+0090  0B 30 02 55 0B 17 03 55 08 00 00 59 A7 00 A0 00
+00A0  A0 00 A0 00 A0 00 37 00 00 44 08 00 00 59 A7 00
+00B0  00 10 24 00 0B 40 02 5E 0A 09 00 60 24 00 0B 30
+00C0  09 00 0F 00 0F 00 0F 00 0F 00 0F 00 00 00 00 00
+
+
+tasm: Number of errors = 0
