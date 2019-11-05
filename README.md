@@ -14,6 +14,10 @@ The first simulated program printed out Hello World! to the serial terminal - yo
 
 Shortly after that I developed a very crude routine to print decimal integers to the terminal. Suite_16_printnum_STM3H743_1.ino
 
+The latest program sample is a hexadecimal to decimal conversion routine
+
+
+
 Suite-16 is based on Steve Wozniak's Sweet-16 virtual 16-bit cpu which he wrote for Apple II
 
 It has a minimum instruction set of just 31 instructions. AC is the Accumulator R0, Rn are general purpose registers R1 to R15
