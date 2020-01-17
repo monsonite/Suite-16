@@ -45,6 +45,8 @@ On the 400MHz STM32H743 Nucleo board (about £25), the simulator runs at about 8
 
 https://hackaday.io/project/168025-suite-16/log/170353-benchmarking-suite-16
 
+Using TeraTerm and Frank's hexloader, you can send a hex file to the STM32H743 simulator at 921600 baud.
+
 
 
 The rest of the earlier project notes are now in a text file  Old_Notes_2019.txt
