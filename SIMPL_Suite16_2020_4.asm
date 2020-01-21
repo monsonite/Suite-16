@@ -1,11 +1,13 @@
-; SIMPL is a tiny Forth-like stack based language used to exercise the Suite_16 instruction set
-; and provide useful programming debugging facilities; 
+; 	SIMPL is a tiny Forth-like stack based language used to exercise the Suite_16 instruction set
+; 	and provide useful programming debugging facilities; 
 
-; SIMPL_Suite16_2020_4.asm
+; 	SIMPL_Suite16_2020_4.asm
 
-; Ken Boak January 2020 
+; 	Ken Boak January 2020 
 
-; This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16
+; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_4.asm out.hex
+
+; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16
 ;
 
 ;	Framework Routines
@@ -25,7 +27,7 @@
 ; 	Print_Hex   Print a 4 digit hexadecimal number from a 16-bit integer
 ; 	HexDump		Display a block of memory in the usual hex dup fashion
 
-; To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_4.asm out.hex
+; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_4.asm out.hex
 
 ;-------------------------------------------------------------------------------
 ; SIMPL - a very small Forth Inspired, Extensible Language
@@ -46,8 +48,9 @@
 ; $0100   Jump Table		$60 words	
 ; $0160   Free space		$A0 words		
 ; $0200   Input Buffer     	$20 words
-; $0220   User Words        $340 words
-; $0580   RAM				$280 words
+; $0220	  Action Routines	$200 words
+; $0420   User Words        $360 words
+; $0780   RAM (stacks etc)	$80 words
 ; $07FF	  Top of RAM
  
 ; Ken Boak   January 2020
@@ -146,7 +149,7 @@
 
 ;		Upper case letters A to Z are used to define 26, User "Words"
 
-;       They are allocated fixed addresses at $20 word intervals, starting at $0220.  A = $0220, Z = $0560
+;       They are allocated fixed addresses at $20 word intervals, starting at $0420.  A = $0420, Z = $0760
 ;       
 
 ;		User Routines are defined by capital letters starting  with colon : and end with semicolon ;
@@ -168,32 +171,32 @@
 
 ; The following 26 commands are normally available to users - shown here with starting address
 
-;	A			$0220
-;	B			$0240			
-;	C			$0260
-;	D			$0280
-;	E			$02A0
-;	F			$02C0
-;	G			$02E0
-;	H			$0300
-;	I			$0320
-;	J			$0340
-;	K			$0360
-;	L			$0380
-;	M			$03A0
-;	N			$03C0
-;	O			$03E0
-;	P			$0400
-;	Q			$0420
-;	R			$0440
-;	S			$0460
-;	T			$0480
-;	U			$04A0
-;	V			$04C0
-;	W			$0500
-;	X			$0520
-;	Y			$0540
-;	Z			$0560			
+;	A			$0420
+;	B			$0440			
+;	C			$0460
+;	D			$0480
+;	E			$04A0
+;	F			$04C0
+;	G			$04E0
+;	H			$0500
+;	I			$0520
+;	J			$0540
+;	K			$0560
+;	L			$0580
+;	M			$05A0
+;	N			$05C0
+;	O			$05E0
+;	P			$0600
+;	Q			$0620
+;	R			$0640
+;	S			$0660
+;	T			$0680
+;	U			$06A0
+;	V			$06C0
+;	W			$0700
+;	X			$0720
+;	Y			$0740
+;	Z			$0760			
 
 ;-------------------------------------------------------------------------------
 
@@ -825,39 +828,39 @@ _dec:
         .WORD   $0F00     ; MORE  >
         .WORD   $0F00     ; QUERY ?
         .WORD   $00A0     ; FETCH @
-		.WORD   $0220     ; A
+		.WORD   $0420     ; A
         
-        .WORD   $0240     ; B
-        .WORD   $0260     ; C
-        .WORD   $0280     ; D
-        .WORD   $02A0     ; E
+        .WORD   $0440     ; B
+        .WORD   $0460     ; C
+        .WORD   $0480     ; D
+        .WORD   $04A0     ; E
 
-        .WORD   $02C0     ; F
-        .WORD   $02E0     ; G
-        .WORD   $0300     ; H
-        .WORD   $0320     ; I
+        .WORD   $04C0     ; F
+        .WORD   $04E0     ; G
+        .WORD   $0500     ; H
+        .WORD   $0520     ; I
         
-        .WORD   $0340     ; J
-        .WORD   $0360     ; K
-        .WORD   $0380     ; L
-        .WORD   $03A0     ; M
+        .WORD   $0540     ; J
+        .WORD   $0560     ; K
+        .WORD   $0580     ; L
+        .WORD   $05A0     ; M
 
-        .WORD   $03C0     ; N
-        .WORD   $03E0     ; O
-        .WORD   $0400     ; P
-        .WORD   $0420     ; Q
+        .WORD   $05C0     ; N
+        .WORD   $05E0     ; O
+        .WORD   $0600     ; P
+        .WORD   $0620     ; Q
 
-		.WORD   $0460     ; R
-        .WORD   $0480     ; S
-        .WORD   $04A0     ; T
-        .WORD   $04C0     ; U
+		.WORD   $0660     ; R
+        .WORD   $0680     ; S
+        .WORD   $06A0     ; T
+        .WORD   $06C0     ; U
 
-        .WORD   $04E0     ; V
-        .WORD   $0500     ; W
-        .WORD   $0520     ; X
-        .WORD   $0540     ; Y
+        .WORD   $06E0     ; V
+        .WORD   $0700     ; W
+        .WORD   $0720     ; X
+        .WORD   $0740     ; Y
 		
-		.WORD   $0560     ; Z
+		.WORD   $0760     ; Z
 			
         .WORD   $0F00     ; OPEN  [
 		
@@ -911,14 +914,5 @@ _dec:
 		; Jump_Table  96 words
                       
 ;----------------------------End of Jump Table-----------------------------------------------	
-	
 
-		
-
-	
-	
-
-		
-
-	
 .end	
