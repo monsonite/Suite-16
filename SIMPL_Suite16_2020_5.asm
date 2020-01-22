@@ -10,9 +10,38 @@
 ; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_5.asm out.hex
 
 ; 	SIMPL - a very small Forth Inspired, Extensible Language
+
 ; 	Implementing the Initialisation, TextTead, TextEval and UART routines in Suite_16 assembly language
+
+;----------------------------------------How SIMPL Works-----------------------------------------------
+
+; SIMPL provides an interpreter framework for sequentially executing single character commands from a text buffer
+
+; R8 is the instruction pointer, IP which points to the current character in the text buffer
+; Fetch the character and use it to index into a jump table
+
+; The jump table associates a code field address with each character
+; Using this code field address we jump to the start of some action routine
+
+; We need to determine whether the characers form part of a number
+; these must be decoded separately and put on the stack - using the "number" routine
+
+; The character is either a number, a primitive or an alpha - so look up the jump address
+; If it's a primitive symbol or lowercase alpha between 0x20 and 0x2F or >$39
+; point to a look-up table and fetch it's code segment address
+
+; If the character is a numeral between ascii $30 and $39 jump to the "number" routine to process the digit
+; Numbers are enummerated as 16-bit integers and put onto the stack by the number routine
+
+; If the character is an ALPHA user word - it will execute from a fixed address stored in the jump table
+; Each table entry jumps to a unique address and executes the code found at that code address
+
+; After execution of the code block, each executed word jumps back to NEXT
+; The NEXT routine fetches the next ascii character instruction from memory and the process repeats
+
+;----------------------------------------------------------------------------------------------------------
 ;
-; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16
+; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16 cpu
 ;
 
 ;	Framework Routines
@@ -65,9 +94,9 @@
 
 ;-------------------------------------------------------------------------------
 
-; Primitive Instructions - commence at $0160
+; Primitive Instructions - commence at $0200
 
-; These allow basic maths an logical instructions on 16-bit integers     +  -  /  *  &  |   ^   ~
+; These allow basic maths and logical instructions on 16-bit integers     +  -  /  *  &  |   ^   ~
 ; Stack Manipulation   DUP DROP PUSH POP SWAP OVER
 ; Memory transfers with FETCH and STORE
 ; Compilation mode with : and ;
@@ -77,7 +106,7 @@
 
 ; Note as of 22-01-2020 - not all of these are fully implemented
 
-;   Primitives based on ascii symbols - implemented in memory $0160 to $0420:
+;   Primitives based on ascii symbols - implemented in memory $0200 to $0420:
 
 ;	ADD       +
 ;	SUB       -
@@ -154,7 +183,7 @@
 
 ;		eg  :F10(100mh200ml);		;	Flash the led 10 times - high for 100mS and low for 200mS
 
-;		You can play sequences of notes (tunes) through a small speaker  ABC etc
+;		You can play sequences of notes (tunes) ABC etc through a small speaker  
 ; 		Some common notes are defined as follows
 
 ;		:A40{h1106ul1106u);			 musical note A
@@ -231,11 +260,11 @@
 ;   starting from that address.
 ; 	At the end of the code block, the interpreter jumps back to NEXT, to fetch the next command.
 
-
+;-------------------------------------------------------------------------------------------------
 
 ; Register Usage and constants
 
-;-------------------------------------------------------------------------------
+
 ; CPU registers - yet to be fully defined for Suite_16
 
 ; Register Usage
@@ -258,7 +287,7 @@
 ;	RSP: 			.EQU R15	    ; Return from alpha  next IP
 
 
-EOS:         	.EQU $0000      	; End of string
+
 
 ;-------------------------------------------------------------------------------
 
@@ -283,40 +312,17 @@ EOS:         	.EQU $0000      	; End of string
 ;   This limitation means that definitions are kept short, concise, and can be chained together to form
 ; 	larger program constructs.
 
-
-
-;-------------------------------------------------------------------------------------------------
-; We now come to decoding the characters - based on the ascii value of the character 
-; the decoding is done using a jump table that associates a code field address with each character
-; Using this code field address we jump to the start of some action routine
-; But first we need to determine whether the characers form part of a number
-; these must be decoded separately and put on the stack - using the "number" routine
-;-------------------------------------------------------------------------------------------------
-
-; ip  - R8 instruction pointer to the current character in the input buffer
 ;----------------------------------------------------------------------------------------------------------
-; The character is either a primitive or an alpha - so form CALL address
-; Restore R8 to start of RAM buffer
-; Get the current character location
-; If it's a primitive symbol or lowercase alpha between 0x20 and 0x2F or >$39 - point to a look-up table and fetch it's code segment address
-; If it's a numeral between ascii $30 and $39 jump to the number routine to process the digit
-; If its an ALPHA user word - it will execute from a fixed address stored in the jump table
 
-; next fetches the next ascii character instruction from memory, decodes it into a jump address
-; and executes the code found at that code address
-; Each executed word jumps back to next
-; Numbers are treated differenty - they are enummerated and put onto the stack by the number routine
-
-; Now we need to decode the instructions using a jump table
-; Numbers have their own separate decode routine: "number"
-
-;----------------------------------------------------------------------------------------------------------
+EOS:         	.EQU $0000      	; End of string
 
 .org $0000
 start:
 
 ;--------------------------------------Text_Read-----------------------------------------------------------
+;
 ; Text_Read - This implements the SIMPL interpreter in Suite_16 assembly Language
+;
 ;----------------------------------------------------------------------------------------------------------
 
 ; Get a character from the UART and store it in the input buffer starting at 0x0780
