@@ -755,7 +755,7 @@
 0755   00EF             	
 0756   00EF             crlf:					; Output a CR/LF pair
 0757   00EF             
-0758   00EF 10 00 02 53 	SET R0, cr			; Load a cr
+0758   00EF 10 00 02 72 	SET R0, cr			; Load a cr
 0759   00F1 0C 00       	OUT
 0760   00F2 0B 03       	SBI 3				; Subtract 3 to make a lf
 0761   00F3 0C 00       	OUT
@@ -777,429 +777,559 @@
 0777   0100             	
 0778   0100             ;------------------------------------------------------Jump_Table------------------------------------------
 0779   0100             
-0780   0100 F0 00               .WORD   $00F0     ; SPACE
-0781   0101 F1 00               .WORD   $00F1     ; STORE !
-0782   0102 F2 00               .WORD   $00F2     ; DUP   "
-0783   0103 F3 00               .WORD   $00F3     ; LIT   #
-0784   0104                     
-0785   0104 F4 00               .WORD   $00F4     ; SWAP  $
-0786   0105 F5 00               .WORD   $00F5     ; OVER  %
-0787   0106 04 02               .WORD   _and      ; AND   &
-0788   0107 00 0F               .WORD   $0F00     ; quote ' 		
-0789   0108                     
-0790   0108 00 0F               .WORD   $0F00     ; BEGIN (
-0791   0109 00 0F               .WORD   $0F00     ; END   )
-0792   010A 00 0F               .WORD   $0F00     ; MUL   *
-0793   010B 00 02               .WORD   _add      ; ADD   +     
-0794   010C                     
-0795   010C 00 0F               .WORD   $0F00     ; COMMA ,
-0796   010D 02 02               .WORD   _sub      ; SUB   -     
-0797   010E 4D 00               .WORD   Print_Num ; DOT   .     Print_Num  
-0798   010F FF 00               .WORD   $00FF     ; DIV   /
-0799   0110             		
-0800   0110             		;ascii digits 0 to 9 are processed here
+0780   0100             ;   Symbolic addresses for the primitive routines begin with an underscore so not to be confused 
+0781   0100             ;   with assembler mnemonics  eg.  _xor
+0782   0100             
+0783   0100             
+0784   0100             
+0785   0100 02 02               .WORD   _space    ; SPACE
+0786   0101 03 02               .WORD   _store    ; STORE !
+0787   0102 04 02               .WORD   _dup      ; DUP   "
+0788   0103 05 02               .WORD   _lit      ; LIT   #      
+0789   0104 06 02               .WORD   _swap     ; SWAP  $
+0790   0105 07 02               .WORD   _over     ; OVER  %
+0791   0106 08 02               .WORD   _and      ; AND   &
+0792   0107 0A 02               .WORD   _pop      ; quote ' 		       
+0793   0108 0B 02               .WORD   _begin    ; BEGIN (
+0794   0109 0C 02               .WORD   _end      ; END   )
+0795   010A 0D 02               .WORD   _mul      ; MUL   *
+0796   010B 0E 02               .WORD   _add      ; ADD   +           
+0797   010C 10 02               .WORD   _push     ; COMMA ,
+0798   010D 11 02               .WORD   _sub      ; SUB   -     
+0799   010E 13 02               .WORD   _print    ; DOT   .     Print a decimal number
+0800   010F 14 02               .WORD   _div      ; DIV   /
 0801   0110             		
-0802   0110 2B 00       		.WORD   number    ; process numeral '0'
-0803   0111 2B 00       		.WORD   number    ; process numeral '1'
-0804   0112 2B 00       		.WORD   number    ; process numeral '2'
-0805   0113 2B 00       		.WORD   number    ; process numeral '3'
-0806   0114 2B 00       		.WORD   number    ; process numeral '4'
-0807   0115 2B 00       		.WORD   number    ; process numeral '5'
-0808   0116 2B 00       		.WORD   number    ; process numeral '6'
-0809   0117 2B 00       		.WORD   number    ; process numeral '7'
-0810   0118 2B 00       		.WORD   number    ; process numeral '8'
-0811   0119 2B 00       		.WORD   number    ; process numeral '9'
-0812   011A             		       
-0813   011A              
-0814   011A                
+0802   0110             		; ascii digits 0 to 9 are processed here by jumping to the number routine
+0803   0110             		
+0804   0110 2B 00       		.WORD   number    ; process numeral '0'
+0805   0111 2B 00       		.WORD   number    ; process numeral '1'
+0806   0112 2B 00       		.WORD   number    ; process numeral '2'
+0807   0113 2B 00       		.WORD   number    ; process numeral '3'
+0808   0114 2B 00       		.WORD   number    ; process numeral '4'
+0809   0115 2B 00       		.WORD   number    ; process numeral '5'
+0810   0116 2B 00       		.WORD   number    ; process numeral '6'
+0811   0117 2B 00       		.WORD   number    ; process numeral '7'
+0812   0118 2B 00       		.WORD   number    ; process numeral '8'
+0813   0119 2B 00       		.WORD   number    ; process numeral '9'
+0814   011A             		        
 0815   011A             ;-----------------------------------------Jump Table Contd-----------------------------------------
-0816   011A                     
-0817   011A 00 0F               .WORD   $0F00     ; CALL  :
-0818   011B 00 0F               .WORD   $0F00     ; RET   ;
-0819   011C 00 0F               .WORD   $0F00     ; LESS  <
-0820   011D 00 0F               .WORD   $0F00     ; EQ    =
-0821   011E             		
-0822   011E 00 0F               .WORD   $0F00     ; MORE  >
-0823   011F 00 0F               .WORD   $0F00     ; QUERY ?
-0824   0120 A0 00               .WORD   $00A0     ; FETCH @
-0825   0121 20 04       		.WORD   $0420     ; A
-0826   0122                     
-0827   0122 40 04               .WORD   $0440     ; B
-0828   0123 60 04               .WORD   $0460     ; C
-0829   0124 80 04               .WORD   $0480     ; D
-0830   0125 A0 04               .WORD   $04A0     ; E
-0831   0126             
-0832   0126 C0 04               .WORD   $04C0     ; F
-0833   0127 E0 04               .WORD   $04E0     ; G
-0834   0128 00 05               .WORD   $0500     ; H
-0835   0129 20 05               .WORD   $0520     ; I
-0836   012A                     
-0837   012A 40 05               .WORD   $0540     ; J
-0838   012B 60 05               .WORD   $0560     ; K
-0839   012C 80 05               .WORD   $0580     ; L
-0840   012D A0 05               .WORD   $05A0     ; M
-0841   012E             
-0842   012E C0 05               .WORD   $05C0     ; N
-0843   012F E0 05               .WORD   $05E0     ; O
-0844   0130 00 06               .WORD   $0600     ; P
-0845   0131 20 06               .WORD   $0620     ; Q
-0846   0132             
+0816   011A             
+0817   011A             
+0818   011A             
+0819   011A                   
+0820   011A 15 02               .WORD   _call     ; CALL  :
+0821   011B 16 02               .WORD   _ret      ; RET   ;
+0822   011C 17 02               .WORD   _less     ; LESS  <
+0823   011D 18 02               .WORD   _eq       ; EQ    =		
+0824   011E 19 02               .WORD   _greater  ; MORE  >
+0825   011F 1A 02               .WORD   _query    ; QUERY ?
+0826   0120 1B 02               .WORD   _fetch    ; FETCH @
+0827   0121             		
+0828   0121             		; Uppercase ALPHA routine are allocated fixed addresses at 32 word intervals
+0829   0121             		
+0830   0121 20 04       		.WORD   $0420     ; A       
+0831   0122 40 04               .WORD   $0440     ; B
+0832   0123 60 04               .WORD   $0460     ; C
+0833   0124 80 04               .WORD   $0480     ; D
+0834   0125 A0 04               .WORD   $04A0     ; E
+0835   0126 C0 04               .WORD   $04C0     ; F
+0836   0127 E0 04               .WORD   $04E0     ; G
+0837   0128 00 05               .WORD   $0500     ; H
+0838   0129 20 05               .WORD   $0520     ; I        
+0839   012A 40 05               .WORD   $0540     ; J
+0840   012B 60 05               .WORD   $0560     ; K
+0841   012C 80 05               .WORD   $0580     ; L
+0842   012D A0 05               .WORD   $05A0     ; M
+0843   012E C0 05               .WORD   $05C0     ; N
+0844   012F E0 05               .WORD   $05E0     ; O
+0845   0130 00 06               .WORD   $0600     ; P
+0846   0131 20 06               .WORD   $0620     ; Q
 0847   0132 60 06       		.WORD   $0660     ; R
 0848   0133 80 06               .WORD   $0680     ; S
 0849   0134 A0 06               .WORD   $06A0     ; T
 0850   0135 C0 06               .WORD   $06C0     ; U
-0851   0136             
-0852   0136 E0 06               .WORD   $06E0     ; V
-0853   0137 00 07               .WORD   $0700     ; W
-0854   0138 20 07               .WORD   $0720     ; X
-0855   0139 40 07               .WORD   $0740     ; Y
-0856   013A             		
-0857   013A 60 07       		.WORD   $0760     ; Z
+0851   0136 E0 06               .WORD   $06E0     ; V
+0852   0137 00 07               .WORD   $0700     ; W
+0853   0138 20 07               .WORD   $0720     ; X
+0854   0139 40 07               .WORD   $0740     ; Y
+0855   013A 60 07       		.WORD   $0760     ; Z
+0856   013B             
+0857   013B             
 0858   013B             			
-0859   013B 00 0F               .WORD   $0F00     ; OPEN  [
-0860   013C             		
-0861   013C 00 0F               .WORD   $0F00     ; BACK  
-0862   013D 00 0F               .WORD   $0F00     ; CLOSE ]        
-0863   013E 08 02               .WORD   _xor      ; XOR   ^      
-0864   013F 00 0F               .WORD   $0F00     ; UNDER _
-0865   0140             		
-0866   0140 00 0F               .WORD   $0F00     ; TICK  
-0867   0141 00 0F               .WORD   $0F00     ; a
-0868   0142                     
-0869   0142 A8 00               .WORD   $00A8     ; b
-0870   0143 00 0F               .WORD   $0F00     ; c
-0871   0144 00 0F               .WORD   $0F00     ; d
-0872   0145 00 0F               .WORD   $0F00     ; e
-0873   0146             
-0874   0146 00 0F               .WORD   $0F00     ; f
-0875   0147 00 0F               .WORD   $0F00     ; g
-0876   0148 00 0F               .WORD   $0F00     ; h
-0877   0149 00 0F               .WORD   $0F00     ; i
-0878   014A                     
-0879   014A B0 00               .WORD   $00B0     ; j
-0880   014B 00 0F               .WORD   $0F00     ; k
-0881   014C 00 0F               .WORD   $0F00     ; l
-0882   014D 00 0F               .WORD   $0F00     ; m
-0883   014E             
-0884   014E 00 0F               .WORD   $0F00     ; n
-0885   014F 00 0F               .WORD   $0F00     ; o
-0886   0150 00 0F               .WORD   $0F00     ; p
-0887   0151 00 0F               .WORD   $0F00     ; q
-0888   0152             
-0889   0152 B8 00               .WORD   $00B8     ; r
-0890   0153 00 0F               .WORD   $0F00     ; s
-0891   0154 00 0F               .WORD   $0F00     ; t
-0892   0155 00 0F               .WORD   $0F00     ; u
-0893   0156             
-0894   0156 00 0F               .WORD   $0F00     ; v
-0895   0157 00 0F               .WORD   $0F00     ; w
-0896   0158 00 0F               .WORD   $0F00     ; x
-0897   0159 00 0F               .WORD   $0F00     ; y
-0898   015A                 
-0899   015A 00 0F               .WORD   $0F00     ; z
-0900   015B 00 0F               .WORD   $0F00     ; BRACEL {
-0901   015C 06 02               .WORD   _or       ; OR     |   
-0902   015D 00 0F               .WORD   $0F00     ; BRACER {
-0903   015E                     
-0904   015E 0A 02               .WORD   _inv      ; INV    ~   
-0905   015F 00 0F               .WORD   $0F00     ; NOP
-0906   0160             		
-0907   0160             		
-0908   0160             		; Jump_Table  96 words
-0909   0160                                   
-0910   0160             ;--------------------------------------End of Jump Table-------------------------------------
-0911   0160             
-0912   0160             ;-----------------------------------------Hex_Loader-----------------------------------------
-0913   0160             
-0914   0160             ; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
-0915   0160             ; Constant definitions
-0916   0160             ;
-0917   0160             loader_start	.equ	$0160		; hexloader starts here
-0918   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
-0919   0160             eos				.equ	$0000		; end of string
-0920   0160             
-0921   0160             .org	loader_start
-0922   0160             
-0923   0160             starting_addr:
-0924   0160             ; Print a welcome message
-0925   0160 11 00 02 10 	SET R1, hello_msg
-0926   0162 08 00 00 E7 	CALL puts
-0927   0164 08 00 00 EF 	CALL crlf
-0928   0166 10 00 00 3E 	SET R0, 62				; > cursor
-0929   0168 0C 00       	OUT						; Print cursor
-0930   0169             	
-0931   0169             get_colon:	
-0932   0169             	; zero checksum
-0933   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
-0934   016B             	; get first character 
-0935   016B 0D 00       	IN						; getchar
-0936   016C 11 00 07 80 	SET R1, $780
-0937   016E 41 00       	LD R0, @R1				; get character		
-0938   016F 0B 3A       	SBI 58					; ':' char
-SIMPL_Suite16_2020_5.asm line 0939: Unused data in MS byte of argument. (1)
-0939   0170 05 69       	BNE get_colon
-0940   0171             
-0941   0171             	; READ LENGTH
-0942   0171 08 00 01 DD 	call getbyte
-0943   0173             	; value is in R7
-0944   0173 27 00       	LD R0, R7
-0945   0174 3A 00       	ST R10, R0				; store in R[10]
-0946   0175             	
-0947   0175             	; READ ADDRESS
-0948   0175 08 00 01 EE 	call getword
-0949   0177             	; value is in R7
-0950   0177 27 00       	LD R0, R7
-0951   0178 3B 00       	ST R11, R0				; store in R[11]
-0952   0179             	
-0953   0179             	; READ RECORD TYPE
-0954   0179 08 00 01 DD 	call getbyte
-0955   017B             	; value is in R7
-0956   017B 27 00       	LD R0, R7
-0957   017C 3D 00       	ST R13, R0;				; store in R[13]
-0958   017D             	
-0959   017D             	; R[10] = length in bytes
-0960   017D             	; R[11] = address 
-0961   017D             	; R[13] = record type 
-0962   017D             	
-0963   017D 11 00 00 01 	SET R1, 1				; record type 01
-0964   017F 37 00       	ST R7, R0				; store for later
-0965   0180 B1 00       	SUB R1					; check if type is 01
-SIMPL_Suite16_2020_5.asm line 0966: Unused data in MS byte of argument. (1)
-0966   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
-0967   0182 27 00       	LD R0, R7				; get value back
-SIMPL_Suite16_2020_5.asm line 0968: Unused data in MS byte of argument. (1)
-0968   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
-0969   0184             
-0970   0184             read_data:	
-0971   0184             	; this is a data byte
-0972   0184             msb_part:
-0973   0184 08 00 01 DD 	call getbyte
-0974   0186             	; value is in R7
-0975   0186 27 00       	LD R0, R7				; get byte in R0
-0976   0187 A0 00       	ADD R0					; shift
-0977   0188 A0 00       	ADD R0
-0978   0189 A0 00       	ADD R0
-0979   018A A0 00       	ADD R0
-0980   018B A0 00       	ADD R0
-0981   018C A0 00       	ADD R0
-0982   018D A0 00       	ADD R0
-0983   018E A0 00       	ADD R0
-0984   018F 5B 00       	ST @R11, R0				; store at memory address
-0985   0190             	
-0986   0190             lsb_part:
-0987   0190 08 00 01 DD 	call getbyte
-0988   0192             	; value is in R7
-0989   0192 4B 00       	LD R0, @R11				; get what is in memory
-0990   0193 97 00       	OR R7					; OR lsb into it
-0991   0194 5B 00       	ST @R11, R0				; store at memory address
-0992   0195             	
-0993   0195 EB 00       	INC R11					; next memory address
-0994   0196             	
-0995   0196             	;decrement 2x
-0996   0196 DA 00       	DEC R10					; decrement 
-0997   0197 DA 00       	DEC R10					; decrement 
-0998   0198             	
-0999   0198 2A 00       	LD R0, R10				; get length
-SIMPL_Suite16_2020_5.asm line 1000: Unused data in MS byte of argument. (1)
-1000   0199 01 84       	BGT read_data			; 
-1001   019A             	
-1002   019A             	; GET LAST BYTE
-1003   019A 08 00 01 DD 	call getbyte			; get checksum byte
-1004   019C             	
-1005   019C             	; CHECK CHECKSUM
-1006   019C 2E 00       	LD R0, R14				; get checksum byte
-1007   019D 11 00 00 FF 	SET R1, $00FF
-1008   019F 81 00       	AND R1
-SIMPL_Suite16_2020_5.asm line 1009: Unused data in MS byte of argument. (1)
-1009   01A0 05 C5       	BNE checksum_error
-1010   01A1             	
-1011   01A1 08 00 00 EF 	call crlf
-1012   01A3 10 00 00 3E 	SET R0, 62				; > cursor
-1013   01A5 0C 00       	OUT						; Print cursor
-SIMPL_Suite16_2020_5.asm line 1014: Unused data in MS byte of argument. (1)
-1014   01A6 00 69       	BRA get_colon
-1015   01A7             	
-1016   01A7 07 00 01 CE 	JMP loop				 ; TODO check
-1017   01A9             	
-1018   01A9             invalid:
-1019   01A9 08 00 00 EF 	call crlf
-1020   01AB 11 00 02 32 	SET R1, invalid_msg
-1021   01AD 08 00 00 E7 	call puts
-1022   01AF 08 00 00 EF 	call crlf
+0859   013B 1C 02               .WORD   _in       ; OPEN  [		
+0860   013C 1D 02               .WORD   _back     ; BACK  
+0861   013D 1E 02               .WORD   _out      ; CLOSE ]        
+0862   013E 1F 02               .WORD   _xor      ; XOR   ^      
+0863   013F 21 02               .WORD   _under    ; UNDER _		
+0864   0140 22 02               .WORD   _tick     ; TICK
+0865   0141             		
+0866   0141 00 0F               .WORD   $0F00     ; a       
+0867   0142 A8 00               .WORD   $00A8     ; b
+0868   0143 00 0F               .WORD   $0F00     ; c
+0869   0144 00 0F               .WORD   $0F00     ; d
+0870   0145 00 0F               .WORD   $0F00     ; e
+0871   0146 00 0F               .WORD   $0F00     ; f
+0872   0147 00 0F               .WORD   $0F00     ; g
+0873   0148 00 0F               .WORD   $0F00     ; h
+0874   0149 00 0F               .WORD   $0F00     ; i      
+0875   014A B0 00               .WORD   $00B0     ; j
+0876   014B 00 0F               .WORD   $0F00     ; k
+0877   014C 00 0F               .WORD   $0F00     ; l
+0878   014D 00 0F               .WORD   $0F00     ; m
+0879   014E 00 0F               .WORD   $0F00     ; n
+0880   014F 00 0F               .WORD   $0F00     ; o
+0881   0150 00 0F               .WORD   $0F00     ; p
+0882   0151 00 0F               .WORD   $0F00     ; q
+0883   0152 B8 00               .WORD   $00B8     ; r
+0884   0153 00 0F               .WORD   $0F00     ; s
+0885   0154 00 0F               .WORD   $0F00     ; t
+0886   0155 00 0F               .WORD   $0F00     ; u
+0887   0156 00 0F               .WORD   $0F00     ; v
+0888   0157 00 0F               .WORD   $0F00     ; w
+0889   0158 00 0F               .WORD   $0F00     ; x
+0890   0159 00 0F               .WORD   $0F00     ; y   
+0891   015A 00 0F               .WORD   $0F00     ; z
+0892   015B             		
+0893   015B 23 02               .WORD   _tor      ; BRACEL {
+0894   015C 24 02               .WORD   _or       ; OR     |   
+0895   015D 26 02               .WORD   _fror     ; BRACER }        
+0896   015E 27 02               .WORD   _inv      ; INV    ~   
+0897   015F 29 02               .WORD   _nop      ; NOP
+0898   0160             		
+0899   0160             		
+0900   0160             		; Jump_Table  96 words
+0901   0160                                   
+0902   0160             ;--------------------------------------End of Jump Table-------------------------------------
+0903   0160             
+0904   0160             ;-----------------------------------------Hex_Loader-----------------------------------------
+0905   0160             
+0906   0160             ; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
+0907   0160             ; Constant definitions
+0908   0160             ;
+0909   0160             loader_start	.equ	$0160		; hexloader starts here
+0910   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
+0911   0160             eos				.equ	$0000		; end of string
+0912   0160             
+0913   0160             .org	loader_start
+0914   0160             
+0915   0160             starting_addr:
+0916   0160             ; Print a welcome message
+0917   0160 11 00 02 2F 	SET R1, hello_msg
+0918   0162 08 00 00 E7 	CALL puts
+0919   0164 08 00 00 EF 	CALL crlf
+0920   0166 10 00 00 3E 	SET R0, 62				; > cursor
+0921   0168 0C 00       	OUT						; Print cursor
+0922   0169             	
+0923   0169             get_colon:	
+0924   0169             	; zero checksum
+0925   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
+0926   016B             	; get first character 
+0927   016B 0D 00       	IN						; getchar
+0928   016C 11 00 07 80 	SET R1, $780
+0929   016E 41 00       	LD R0, @R1				; get character		
+0930   016F 0B 3A       	SBI 58					; ':' char
+SIMPL_Suite16_2020_5.asm line 0931: Unused data in MS byte of argument. (1)
+0931   0170 05 69       	BNE get_colon
+0932   0171             
+0933   0171             	; READ LENGTH
+0934   0171 08 00 01 DD 	call getbyte
+0935   0173             	; value is in R7
+0936   0173 27 00       	LD R0, R7
+0937   0174 3A 00       	ST R10, R0				; store in R[10]
+0938   0175             	
+0939   0175             	; READ ADDRESS
+0940   0175 08 00 01 EE 	call getword
+0941   0177             	; value is in R7
+0942   0177 27 00       	LD R0, R7
+0943   0178 3B 00       	ST R11, R0				; store in R[11]
+0944   0179             	
+0945   0179             	; READ RECORD TYPE
+0946   0179 08 00 01 DD 	call getbyte
+0947   017B             	; value is in R7
+0948   017B 27 00       	LD R0, R7
+0949   017C 3D 00       	ST R13, R0;				; store in R[13]
+0950   017D             	
+0951   017D             	; R[10] = length in bytes
+0952   017D             	; R[11] = address 
+0953   017D             	; R[13] = record type 
+0954   017D             	
+0955   017D 11 00 00 01 	SET R1, 1				; record type 01
+0956   017F 37 00       	ST R7, R0				; store for later
+0957   0180 B1 00       	SUB R1					; check if type is 01
+SIMPL_Suite16_2020_5.asm line 0958: Unused data in MS byte of argument. (1)
+0958   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
+0959   0182 27 00       	LD R0, R7				; get value back
+SIMPL_Suite16_2020_5.asm line 0960: Unused data in MS byte of argument. (1)
+0960   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
+0961   0184             
+0962   0184             read_data:	
+0963   0184             	; this is a data byte
+0964   0184             msb_part:
+0965   0184 08 00 01 DD 	call getbyte
+0966   0186             	; value is in R7
+0967   0186 27 00       	LD R0, R7				; get byte in R0
+0968   0187 A0 00       	ADD R0					; shift
+0969   0188 A0 00       	ADD R0
+0970   0189 A0 00       	ADD R0
+0971   018A A0 00       	ADD R0
+0972   018B A0 00       	ADD R0
+0973   018C A0 00       	ADD R0
+0974   018D A0 00       	ADD R0
+0975   018E A0 00       	ADD R0
+0976   018F 5B 00       	ST @R11, R0				; store at memory address
+0977   0190             	
+0978   0190             lsb_part:
+0979   0190 08 00 01 DD 	call getbyte
+0980   0192             	; value is in R7
+0981   0192 4B 00       	LD R0, @R11				; get what is in memory
+0982   0193 97 00       	OR R7					; OR lsb into it
+0983   0194 5B 00       	ST @R11, R0				; store at memory address
+0984   0195             	
+0985   0195 EB 00       	INC R11					; next memory address
+0986   0196             	
+0987   0196             	;decrement 2x
+0988   0196 DA 00       	DEC R10					; decrement 
+0989   0197 DA 00       	DEC R10					; decrement 
+0990   0198             	
+0991   0198 2A 00       	LD R0, R10				; get length
+SIMPL_Suite16_2020_5.asm line 0992: Unused data in MS byte of argument. (1)
+0992   0199 01 84       	BGT read_data			; 
+0993   019A             	
+0994   019A             	; GET LAST BYTE
+0995   019A 08 00 01 DD 	call getbyte			; get checksum byte
+0996   019C             	
+0997   019C             	; CHECK CHECKSUM
+0998   019C 2E 00       	LD R0, R14				; get checksum byte
+0999   019D 11 00 00 FF 	SET R1, $00FF
+1000   019F 81 00       	AND R1
+SIMPL_Suite16_2020_5.asm line 1001: Unused data in MS byte of argument. (1)
+1001   01A0 05 C5       	BNE checksum_error
+1002   01A1             	
+1003   01A1 08 00 00 EF 	call crlf
+1004   01A3 10 00 00 3E 	SET R0, 62				; > cursor
+1005   01A5 0C 00       	OUT						; Print cursor
+SIMPL_Suite16_2020_5.asm line 1006: Unused data in MS byte of argument. (1)
+1006   01A6 00 69       	BRA get_colon
+1007   01A7             	
+1008   01A7 07 00 01 CE 	JMP loop				 ; TODO check
+1009   01A9             	
+1010   01A9             invalid:
+1011   01A9 08 00 00 EF 	call crlf
+1012   01AB 11 00 02 51 	SET R1, invalid_msg
+1013   01AD 08 00 00 E7 	call puts
+1014   01AF 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1015: Unused data in MS byte of argument. (1)
+1015   01B1 00 60       	BRA starting_addr
+1016   01B2             	
+1017   01B2             endload:
+1018   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
+1019   01B4             
+1020   01B4 2E 00       	LD R0, R14				; get checksum byte
+1021   01B5 11 00 00 FF 	SET R1, $00FF
+1022   01B7 81 00       	AND R1
 SIMPL_Suite16_2020_5.asm line 1023: Unused data in MS byte of argument. (1)
-1023   01B1 00 60       	BRA starting_addr
-1024   01B2             	
-1025   01B2             endload:
-1026   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
-1027   01B4             
-1028   01B4 2E 00       	LD R0, R14				; get checksum byte
-1029   01B5 11 00 00 FF 	SET R1, $00FF
-1030   01B7 81 00       	AND R1
-SIMPL_Suite16_2020_5.asm line 1031: Unused data in MS byte of argument. (1)
-1031   01B8 05 C5       	BNE checksum_error
-1032   01B9 08 00 00 EF 	call crlf
-1033   01BB 11 00 02 46 	SET R1, done_msg
-1034   01BD 08 00 00 E7 	call puts
-1035   01BF 08 00 00 EF 	call crlf
-1036   01C1 08 00 00 EF 	call crlf
-1037   01C3             
-1038   01C3             	; jump to fixed memory location (loaded program)
-1039   01C3             	; loader program has to start at location "program_start" for now
-1040   01C3 07 00 03 00 	JMP program_start
-1041   01C5             	
-1042   01C5             checksum_error:
-1043   01C5 08 00 00 EF 	call crlf
-1044   01C7 11 00 02 23 	SET R1, error_msg
-1045   01C9 08 00 00 E7 	call puts
-1046   01CB 08 00 00 EF 	call crlf
-SIMPL_Suite16_2020_5.asm line 1047: Unused data in MS byte of argument. (1)
-1047   01CD 00 60       	BRA starting_addr
-1048   01CE             	
-1049   01CE             	; program should never get here !!!
-1050   01CE             loop:
-SIMPL_Suite16_2020_5.asm line 1051: Unused data in MS byte of argument. (1)
-1051   01CE 00 CE       	BRA loop
-1052   01CF             
-1053   01CF             getnibble:
-1054   01CF 0D 00       	IN				; read char from serial in
-1055   01D0 11 00 07 80 	SET R1, $780
-1056   01D2 41 00       	LD R0, @R1		; get character
-1057   01D3 0B 30       	SBI $30		
-1058   01D4 32 00       	ST R2, R0		; save temporary
-1059   01D5 0B 0A       	SBI 10
-SIMPL_Suite16_2020_5.asm line 1060: Unused data in MS byte of argument. (1)
-1060   01D6 02 DA       	BLT decimal
-1061   01D7 22 00       	LD R0, R2		; restore value
-1062   01D8 0B 07       	SBI 7
-SIMPL_Suite16_2020_5.asm line 1063: Unused data in MS byte of argument. (1)
-1063   01D9 00 DB       	BRA hexadecimal
-1064   01DA             decimal:	
-1065   01DA 22 00       	LD R0, R2		; restore value
-1066   01DB             hexadecimal:	
-1067   01DB 37 00       	ST R7, R0		; value is stored in R7
-1068   01DC 09 00       	RET
-1069   01DD             	
-1070   01DD             ;
-1071   01DD             ;
-1072   01DD             ;
-1073   01DD             getbyte:
-1074   01DD 08 00 01 CF 	call getnibble
-1075   01DF 27 00       	LD R0, R7
-1076   01E0 A0 00       	ADD R0
-1077   01E1 A0 00       	ADD R0
-1078   01E2 A0 00       	ADD R0
-1079   01E3 A0 00       	ADD R0
-1080   01E4 38 00       	ST R8, R0		; temporary store msb 
-1081   01E5 08 00 01 CF 	call getnibble
-1082   01E7 27 00       	LD R0, R7		; get back lsb
-1083   01E8 98 00       	OR R8			; create word value
-1084   01E9 37 00       	ST R7, R0		; value is stored in R7
-1085   01EA             	
-1086   01EA             	; store byte for checksum
-1087   01EA 2E 00       	LD R0, R14		; load checksum
-1088   01EB A7 00       	ADD R7			; add byte to checksum
-1089   01EC 3E 00       	ST R14, R0
-1090   01ED             	
-1091   01ED 09 00       	RET
-1092   01EE             
-1093   01EE             getword:
-1094   01EE 08 00 01 DD 	call getbyte
-1095   01F0 27 00       	LD R0, R7
-1096   01F1 A0 00       	ADD R0
-1097   01F2 A0 00       	ADD R0
-1098   01F3 A0 00       	ADD R0
-1099   01F4 A0 00       	ADD R0
-1100   01F5 A0 00       	ADD R0
-1101   01F6 A0 00       	ADD R0
-1102   01F7 A0 00       	ADD R0
-1103   01F8 A0 00       	ADD R0
-1104   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
-1105   01FA 08 00 01 DD 	call getbyte
-1106   01FC 27 00       	LD R0, R7		; get back lsb ???
-1107   01FD 99 00       	OR R9
-1108   01FE 37 00       	ST R7, R0
-1109   01FF 09 00       	RET
+1023   01B8 05 C5       	BNE checksum_error
+1024   01B9 08 00 00 EF 	call crlf
+1025   01BB 11 00 02 65 	SET R1, done_msg
+1026   01BD 08 00 00 E7 	call puts
+1027   01BF 08 00 00 EF 	call crlf
+1028   01C1 08 00 00 EF 	call crlf
+1029   01C3             
+1030   01C3             	; jump to fixed memory location (loaded program)
+1031   01C3             	; loader program has to start at location "program_start" for now
+1032   01C3 07 00 03 00 	JMP program_start
+1033   01C5             	
+1034   01C5             checksum_error:
+1035   01C5 08 00 00 EF 	call crlf
+1036   01C7 11 00 02 42 	SET R1, error_msg
+1037   01C9 08 00 00 E7 	call puts
+1038   01CB 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1039: Unused data in MS byte of argument. (1)
+1039   01CD 00 60       	BRA starting_addr
+1040   01CE             	
+1041   01CE             	; program should never get here !!!
+1042   01CE             loop:
+SIMPL_Suite16_2020_5.asm line 1043: Unused data in MS byte of argument. (1)
+1043   01CE 00 CE       	BRA loop
+1044   01CF             
+1045   01CF             getnibble:
+1046   01CF 0D 00       	IN				; read char from serial in
+1047   01D0 11 00 07 80 	SET R1, $780
+1048   01D2 41 00       	LD R0, @R1		; get character
+1049   01D3 0B 30       	SBI $30		
+1050   01D4 32 00       	ST R2, R0		; save temporary
+1051   01D5 0B 0A       	SBI 10
+SIMPL_Suite16_2020_5.asm line 1052: Unused data in MS byte of argument. (1)
+1052   01D6 02 DA       	BLT decimal
+1053   01D7 22 00       	LD R0, R2		; restore value
+1054   01D8 0B 07       	SBI 7
+SIMPL_Suite16_2020_5.asm line 1055: Unused data in MS byte of argument. (1)
+1055   01D9 00 DB       	BRA hexadecimal
+1056   01DA             decimal:	
+1057   01DA 22 00       	LD R0, R2		; restore value
+1058   01DB             hexadecimal:	
+1059   01DB 37 00       	ST R7, R0		; value is stored in R7
+1060   01DC 09 00       	RET
+1061   01DD             	
+1062   01DD             ;
+1063   01DD             ;
+1064   01DD             ;
+1065   01DD             getbyte:
+1066   01DD 08 00 01 CF 	call getnibble
+1067   01DF 27 00       	LD R0, R7
+1068   01E0 A0 00       	ADD R0
+1069   01E1 A0 00       	ADD R0
+1070   01E2 A0 00       	ADD R0
+1071   01E3 A0 00       	ADD R0
+1072   01E4 38 00       	ST R8, R0		; temporary store msb 
+1073   01E5 08 00 01 CF 	call getnibble
+1074   01E7 27 00       	LD R0, R7		; get back lsb
+1075   01E8 98 00       	OR R8			; create word value
+1076   01E9 37 00       	ST R7, R0		; value is stored in R7
+1077   01EA             	
+1078   01EA             	; store byte for checksum
+1079   01EA 2E 00       	LD R0, R14		; load checksum
+1080   01EB A7 00       	ADD R7			; add byte to checksum
+1081   01EC 3E 00       	ST R14, R0
+1082   01ED             	
+1083   01ED 09 00       	RET
+1084   01EE             
+1085   01EE             getword:
+1086   01EE 08 00 01 DD 	call getbyte
+1087   01F0 27 00       	LD R0, R7
+1088   01F1 A0 00       	ADD R0
+1089   01F2 A0 00       	ADD R0
+1090   01F3 A0 00       	ADD R0
+1091   01F4 A0 00       	ADD R0
+1092   01F5 A0 00       	ADD R0
+1093   01F6 A0 00       	ADD R0
+1094   01F7 A0 00       	ADD R0
+1095   01F8 A0 00       	ADD R0
+1096   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
+1097   01FA 08 00 01 DD 	call getbyte
+1098   01FC 27 00       	LD R0, R7		; get back lsb ???
+1099   01FD 99 00       	OR R9
+1100   01FE 37 00       	ST R7, R0
+1101   01FF 09 00       	RET
+1102   0200             	
+1103   0200             ;------------------------------------------Primitive Routines------------------------------------
+1104   0200             
+1105   0200             .org $0200	
+1106   0200             
+1107   0200             ; All primitive address labels begin with an underscore to avaid confusion with mnemonics
+1108   0200             ; The following 34 primitives are single ascii symbols such as $ % & * ( ) etc
+1109   0200             ; _next is a local page trampoline to NEXT
 1110   0200             
-1111   0200             	
-1112   0200             	;---------------------------------------Arithmetic & Logic-----------------------------------
-1113   0200             _add:	  
-1114   0200 A1 00       	  ADD R1    ; ADD
-1115   0201 00 47             BRA NEXT
-1116   0202             _sub:	  
-1117   0202 B1 00             SUB R1   ; SUB
-1118   0203 00 47             BRA NEXT
-1119   0204             _and:     
-1120   0204 81 00             AND R1    ; AND
-1121   0205 00 47             BRA NEXT
-1122   0206             _or:	  	  
-1123   0206 91 00             OR  R1    ; OR
-1124   0207 00 47             BRA NEXT
-1125   0208             _xor:
-1126   0208 F1 00             XOR  R1   ; XOR
-1127   0209 00 47             BRA NEXT
-1128   020A             _inv:	  
-1129   020A C1 00             INV  R1   ; INV
-1130   020B 00 47             BRA NEXT
-1131   020C             _inc:
-1132   020C E0 00             INC  R0   ; INC
-1133   020D 00 47             BRA NEXT
-1134   020E             _dec:	  
-1135   020E D0 00             DEC  R0   ; DEC
-1136   020F 00 47             BRA NEXT
-1137   0210             	  
-1138   0210             	; Arithmetic and logic operations  16 instructions  
-1139   0210             ;----------------------------------------------------------------------------------------------------------	
-1140   0210             
-1141   0210             
-1142   0210             	
-1143   0210             ; Message definitions
-1144   0210             ;
-1145   0210             .MSFIRST
-1146   0210 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
-1146   0212 00 69 00 74 
-1146   0214 00 65 00 31 
-1146   0216 00 36 00 20 
-1146   0218 00 48 00 65 
-1146   021A 00 78 00 20 
-1146   021C 00 4C 00 6F 
-1146   021E 00 61 00 64 
-1146   0220 00 65 00 72 
-1146   0222 00 00 
-1147   0223 00 43 00 68 error_msg		.WORD	"Checksum error", eos
-1147   0225 00 65 00 63 
-1147   0227 00 6B 00 73 
-1147   0229 00 75 00 6D 
-1147   022B 00 20 00 65 
-1147   022D 00 72 00 72 
-1147   022F 00 6F 00 72 
-1147   0231 00 00 
-1148   0232 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
-1148   0234 00 76 00 61 
-1148   0236 00 6C 00 69 
-1148   0238 00 64 00 20 
-1148   023A 00 72 00 65 
-1148   023C 00 63 00 6F 
-1148   023E 00 72 00 64 
-1148   0240 00 20 00 74 
-1148   0242 00 79 00 70 
-1148   0244 00 65 00 00 
-1149   0246 00 44 00 6F done_msg		.WORD	"Done loading", eos
-1149   0248 00 6E 00 65 
-1149   024A 00 20 00 6C 
-1149   024C 00 6F 00 61 
-1149   024E 00 64 00 69 
-1149   0250 00 6E 00 67 
-1149   0252 00 00 
-1150   0253             
-1151   0253             ;
-1152   0253             ; 
-1153   0253             ;
-1154   0253             	
-1155   0253             .MSFIRST
-1156   0253 00 0D       cr				.WORD $0d	; carriage return
-1157   0254 00 0A       lf				.WORD $0a	; line feed
-1158   0255 00 20       space			.WORD $20	; space
-1159   0256             .end	
+1111   0200             _next:
+1112   0200 07 00 00 47 	JMP NEXT
+1113   0202             
+1114   0202             
+1115   0202             _space:
+SIMPL_Suite16_2020_5.asm line 1116: Unused data in MS byte of argument. (2)
+1116   0202 00 00       	BRA _next
+1117   0203             
+1118   0203             _store:
+SIMPL_Suite16_2020_5.asm line 1119: Unused data in MS byte of argument. (2)
+1119   0203 00 00       	BRA _next
+1120   0204             
+1121   0204             _dup:
+SIMPL_Suite16_2020_5.asm line 1122: Unused data in MS byte of argument. (2)
+1122   0204 00 00       	BRA _next
+1123   0205             
+1124   0205             _lit:
+SIMPL_Suite16_2020_5.asm line 1125: Unused data in MS byte of argument. (2)
+1125   0205 00 00       	BRA _next
+1126   0206             
+1127   0206             _swap:
+SIMPL_Suite16_2020_5.asm line 1128: Unused data in MS byte of argument. (2)
+1128   0206 00 00           BRA _next
+1129   0207             
+1130   0207             _over:
+SIMPL_Suite16_2020_5.asm line 1131: Unused data in MS byte of argument. (2)
+1131   0207 00 00           BRA _next
+1132   0208             
+1133   0208             _and:
+1134   0208 81 00       	AND R1		; AND
+SIMPL_Suite16_2020_5.asm line 1135: Unused data in MS byte of argument. (2)
+1135   0209 00 00           BRA _next
+1136   020A             
+1137   020A             _pop:
+SIMPL_Suite16_2020_5.asm line 1138: Unused data in MS byte of argument. (2)
+1138   020A 00 00           BRA _next
+1139   020B             
+1140   020B             _begin:
+SIMPL_Suite16_2020_5.asm line 1141: Unused data in MS byte of argument. (2)
+1141   020B 00 00           BRA _next
+1142   020C             
+1143   020C             _end:
+SIMPL_Suite16_2020_5.asm line 1144: Unused data in MS byte of argument. (2)
+1144   020C 00 00           BRA _next
+1145   020D             
+1146   020D             _mul:
+SIMPL_Suite16_2020_5.asm line 1147: Unused data in MS byte of argument. (2)
+1147   020D 00 00           BRA _next
+1148   020E             
+1149   020E             _add:
+1150   020E A1 00       	ADD R1    ; ADD
+SIMPL_Suite16_2020_5.asm line 1151: Unused data in MS byte of argument. (2)
+1151   020F 00 00           BRA _next
+1152   0210             
+1153   0210             _push:
+SIMPL_Suite16_2020_5.asm line 1154: Unused data in MS byte of argument. (2)
+1154   0210 00 00           BRA _next
+1155   0211             
+1156   0211             _sub:
+1157   0211 B1 00       	SUB R1    ; SUB
+SIMPL_Suite16_2020_5.asm line 1158: Unused data in MS byte of argument. (2)
+1158   0212 00 00           BRA _next
+1159   0213             
+1160   0213             _print:
+SIMPL_Suite16_2020_5.asm line 1161: Unused data in MS byte of argument. (2)
+1161   0213 00 00           BRA _next
+1162   0214             
+1163   0214             _div:
+SIMPL_Suite16_2020_5.asm line 1164: Unused data in MS byte of argument. (2)
+1164   0214 00 00           BRA _next
+1165   0215             
+1166   0215             _call:
+SIMPL_Suite16_2020_5.asm line 1167: Unused data in MS byte of argument. (2)
+1167   0215 00 00           BRA _next
+1168   0216             
+1169   0216             _ret:
+SIMPL_Suite16_2020_5.asm line 1170: Unused data in MS byte of argument. (2)
+1170   0216 00 00           BRA _next
+1171   0217             
+1172   0217             _less:
+SIMPL_Suite16_2020_5.asm line 1173: Unused data in MS byte of argument. (2)
+1173   0217 00 00           BRA _next
+1174   0218             
+1175   0218             _eq:
+SIMPL_Suite16_2020_5.asm line 1176: Unused data in MS byte of argument. (2)
+1176   0218 00 00           BRA _next
+1177   0219             
+1178   0219             _greater:
+SIMPL_Suite16_2020_5.asm line 1179: Unused data in MS byte of argument. (2)
+1179   0219 00 00           BRA _next
+1180   021A             
+1181   021A             _query:
+SIMPL_Suite16_2020_5.asm line 1182: Unused data in MS byte of argument. (2)
+1182   021A 00 00           BRA _next
+1183   021B             
+1184   021B             _fetch:
+SIMPL_Suite16_2020_5.asm line 1185: Unused data in MS byte of argument. (2)
+1185   021B 00 00           BRA _next
+1186   021C             
+1187   021C             _in:
+SIMPL_Suite16_2020_5.asm line 1188: Unused data in MS byte of argument. (2)
+1188   021C 00 00           BRA _next
+1189   021D             
+1190   021D             _back:
+SIMPL_Suite16_2020_5.asm line 1191: Unused data in MS byte of argument. (2)
+1191   021D 00 00           BRA _next
+1192   021E             
+1193   021E             _out:
+SIMPL_Suite16_2020_5.asm line 1194: Unused data in MS byte of argument. (2)
+1194   021E 00 00           BRA _next
+1195   021F             
+1196   021F             _xor:
+1197   021F F1 00       	XOR R1		; XOR
+SIMPL_Suite16_2020_5.asm line 1198: Unused data in MS byte of argument. (2)
+1198   0220 00 00           BRA _next
+1199   0221             
+1200   0221             _under:
+SIMPL_Suite16_2020_5.asm line 1201: Unused data in MS byte of argument. (2)
+1201   0221 00 00           BRA _next
+1202   0222             
+1203   0222             _tick:
+SIMPL_Suite16_2020_5.asm line 1204: Unused data in MS byte of argument. (2)
+1204   0222 00 00           BRA _next
+1205   0223             
+1206   0223             _tor:
+SIMPL_Suite16_2020_5.asm line 1207: Unused data in MS byte of argument. (2)
+1207   0223 00 00           BRA _next
+1208   0224             
+1209   0224             _or:
+1210   0224 91 00       	OR R1		; OR
+SIMPL_Suite16_2020_5.asm line 1211: Unused data in MS byte of argument. (2)
+1211   0225 00 00           BRA _next
+1212   0226             
+1213   0226             _fror:
+SIMPL_Suite16_2020_5.asm line 1214: Unused data in MS byte of argument. (2)
+1214   0226 00 00           BRA _next
+1215   0227             
+1216   0227             _inv:
+1217   0227 C0 00       	INV  R0		; INV
+SIMPL_Suite16_2020_5.asm line 1218: Unused data in MS byte of argument. (2)
+1218   0228 00 00           BRA _next
+1219   0229             
+1220   0229             _nop:
+1221   0229 0F 00       	NOP
+SIMPL_Suite16_2020_5.asm line 1222: Unused data in MS byte of argument. (2)
+1222   022A 00 00           BRA _next
+1223   022B             
+1224   022B             	
+1225   022B             	;---------------------------------------Arithmetic & Logic-----------------------------------
+1226   022B             
+1227   022B             _inc:
+1228   022B E0 00             INC  R0   ; INC
+1229   022C 00 47             BRA NEXT
+1230   022D             _dec:	  
+1231   022D D0 00             DEC  R0   ; DEC
+1232   022E 00 47             BRA NEXT
+1233   022F             	  
+1234   022F             	; Arithmetic and logic operations  4 instructions  
+1235   022F             ;----------------------------------------------------------------------------------------------------------	
+1236   022F             
+1237   022F             
+1238   022F             	
+1239   022F             ; Message definitions
+1240   022F             ;
+1241   022F             .MSFIRST
+1242   022F 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
+1242   0231 00 69 00 74 
+1242   0233 00 65 00 31 
+1242   0235 00 36 00 20 
+1242   0237 00 48 00 65 
+1242   0239 00 78 00 20 
+1242   023B 00 4C 00 6F 
+1242   023D 00 61 00 64 
+1242   023F 00 65 00 72 
+1242   0241 00 00 
+1243   0242 00 43 00 68 error_msg		.WORD	"Checksum error", eos
+1243   0244 00 65 00 63 
+1243   0246 00 6B 00 73 
+1243   0248 00 75 00 6D 
+1243   024A 00 20 00 65 
+1243   024C 00 72 00 72 
+1243   024E 00 6F 00 72 
+1243   0250 00 00 
+1244   0251 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
+1244   0253 00 76 00 61 
+1244   0255 00 6C 00 69 
+1244   0257 00 64 00 20 
+1244   0259 00 72 00 65 
+1244   025B 00 63 00 6F 
+1244   025D 00 72 00 64 
+1244   025F 00 20 00 74 
+1244   0261 00 79 00 70 
+1244   0263 00 65 00 00 
+1245   0265 00 44 00 6F done_msg		.WORD	"Done loading", eos
+1245   0267 00 6E 00 65 
+1245   0269 00 20 00 6C 
+1245   026B 00 6F 00 61 
+1245   026D 00 64 00 69 
+1245   026F 00 6E 00 67 
+1245   0271 00 00 
+1246   0272             
+1247   0272             ;
+1248   0272             ; 
+1249   0272             ;
+1250   0272             	
+1251   0272             .MSFIRST
+1252   0272 00 0D       cr				.WORD $0d	; carriage return
+1253   0273 00 0A       lf				.WORD $0a	; line feed
+1254   0274 00 20       space			.WORD $20	; space
+1255   0275             .end	
 ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 -----------------------------------------------------
 0000  00 72 18 00 07 80 E8 00 48 00 34 00 0B 0D 06 25
@@ -1232,21 +1362,21 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 01B0  EB 00 DA 00 D9 00 2A 00 01 D2 29 00 04 E4 08 00
 01C0  00 EF 1A 00 00 16 00 C9 08 00 00 EF 00 47 08 00
 01D0  00 EC E1 00 01 E7 09 00 41 00 0C 00 09 00 10 00
-01E0  02 53 0C 00 0B 03 0C 00 09 00 00 00 00 00 00 00
+01E0  02 72 0C 00 0B 03 0C 00 09 00 00 00 00 00 00 00
 01F0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0200  F0 00 F1 00 F2 00 F3 00 F4 00 F5 00 04 02 00 0F
-0210  00 0F 00 0F 00 0F 00 02 00 0F 02 02 4D 00 FF 00
+0200  02 02 03 02 04 02 05 02 06 02 07 02 08 02 0A 02
+0210  0B 02 0C 02 0D 02 0E 02 10 02 11 02 13 02 14 02
 0220  2B 00 2B 00 2B 00 2B 00 2B 00 2B 00 2B 00 2B 00
-0230  2B 00 2B 00 00 0F 00 0F 00 0F 00 0F 00 0F 00 0F
-0240  A0 00 20 04 40 04 60 04 80 04 A0 04 C0 04 E0 04
+0230  2B 00 2B 00 15 02 16 02 17 02 18 02 19 02 1A 02
+0240  1B 02 20 04 40 04 60 04 80 04 A0 04 C0 04 E0 04
 0250  00 05 20 05 40 05 60 05 80 05 A0 05 C0 05 E0 05
 0260  00 06 20 06 60 06 80 06 A0 06 C0 06 E0 06 00 07
-0270  20 07 40 07 60 07 00 0F 00 0F 00 0F 08 02 00 0F
-0280  00 0F 00 0F A8 00 00 0F 00 0F 00 0F 00 0F 00 0F
+0270  20 07 40 07 60 07 1C 02 1D 02 1E 02 1F 02 21 02
+0280  22 02 00 0F A8 00 00 0F 00 0F 00 0F 00 0F 00 0F
 0290  00 0F 00 0F B0 00 00 0F 00 0F 00 0F 00 0F 00 0F
 02A0  00 0F 00 0F B8 00 00 0F 00 0F 00 0F 00 0F 00 0F
-02B0  00 0F 00 0F 00 0F 00 0F 06 02 00 0F 0A 02 00 0F
-02C0  11 00 02 10 08 00 00 E7 08 00 00 EF 10 00 00 3E
+02B0  00 0F 00 0F 00 0F 23 02 24 02 26 02 27 02 29 02
+02C0  11 00 02 2F 08 00 00 E7 08 00 00 EF 10 00 00 3E
 02D0  0C 00 1E 00 00 00 0D 00 11 00 07 80 41 00 0B 3A
 02E0  05 69 08 00 01 DD 27 00 3A 00 08 00 01 EE 27 00
 02F0  3B 00 08 00 01 DD 27 00 3D 00 11 00 00 01 37 00
@@ -1255,28 +1385,32 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 0320  08 00 01 DD 4B 00 97 00 5B 00 EB 00 DA 00 DA 00
 0330  2A 00 01 84 08 00 01 DD 2E 00 11 00 00 FF 81 00
 0340  05 C5 08 00 00 EF 10 00 00 3E 0C 00 00 69 07 00
-0350  01 CE 08 00 00 EF 11 00 02 32 08 00 00 E7 08 00
+0350  01 CE 08 00 00 EF 11 00 02 51 08 00 00 E7 08 00
 0360  00 EF 00 60 08 00 01 DD 2E 00 11 00 00 FF 81 00
-0370  05 C5 08 00 00 EF 11 00 02 46 08 00 00 E7 08 00
+0370  05 C5 08 00 00 EF 11 00 02 65 08 00 00 E7 08 00
 0380  00 EF 08 00 00 EF 07 00 03 00 08 00 00 EF 11 00
-0390  02 23 08 00 00 E7 08 00 00 EF 00 60 00 CE 0D 00
+0390  02 42 08 00 00 E7 08 00 00 EF 00 60 00 CE 0D 00
 03A0  11 00 07 80 41 00 0B 30 32 00 0B 0A 02 DA 22 00
 03B0  0B 07 00 DB 22 00 37 00 09 00 08 00 01 CF 27 00
 03C0  A0 00 A0 00 A0 00 A0 00 38 00 08 00 01 CF 27 00
 03D0  98 00 37 00 2E 00 A7 00 3E 00 09 00 08 00 01 DD
 03E0  27 00 A0 00 A0 00 A0 00 A0 00 A0 00 A0 00 A0 00
 03F0  A0 00 39 00 08 00 01 DD 27 00 99 00 37 00 09 00
-0400  A1 00 00 47 B1 00 00 47 81 00 00 47 91 00 00 47
-0410  F1 00 00 47 C1 00 00 47 E0 00 00 47 D0 00 00 47
-0420  00 53 00 75 00 69 00 74 00 65 00 31 00 36 00 20
-0430  00 48 00 65 00 78 00 20 00 4C 00 6F 00 61 00 64
-0440  00 65 00 72 00 00 00 43 00 68 00 65 00 63 00 6B
-0450  00 73 00 75 00 6D 00 20 00 65 00 72 00 72 00 6F
-0460  00 72 00 00 00 49 00 6E 00 76 00 61 00 6C 00 69
-0470  00 64 00 20 00 72 00 65 00 63 00 6F 00 72 00 64
-0480  00 20 00 74 00 79 00 70 00 65 00 00 00 44 00 6F
-0490  00 6E 00 65 00 20 00 6C 00 6F 00 61 00 64 00 69
-04A0  00 6E 00 67 00 00 00 0D 00 0A 00 20 00 00 00 00
+0400  07 00 00 47 00 00 00 00 00 00 00 00 00 00 00 00
+0410  81 00 00 00 00 00 00 00 00 00 00 00 A1 00 00 00
+0420  00 00 B1 00 00 00 00 00 00 00 00 00 00 00 00 00
+0430  00 00 00 00 00 00 00 00 00 00 00 00 00 00 F1 00
+0440  00 00 00 00 00 00 00 00 91 00 00 00 00 00 C0 00
+0450  00 00 0F 00 00 00 E0 00 00 47 D0 00 00 47 00 53
+0460  00 75 00 69 00 74 00 65 00 31 00 36 00 20 00 48
+0470  00 65 00 78 00 20 00 4C 00 6F 00 61 00 64 00 65
+0480  00 72 00 00 00 43 00 68 00 65 00 63 00 6B 00 73
+0490  00 75 00 6D 00 20 00 65 00 72 00 72 00 6F 00 72
+04A0  00 00 00 49 00 6E 00 76 00 61 00 6C 00 69 00 64
+04B0  00 20 00 72 00 65 00 63 00 6F 00 72 00 64 00 20
+04C0  00 74 00 79 00 70 00 65 00 00 00 44 00 6F 00 6E
+04D0  00 65 00 20 00 6C 00 6F 00 61 00 64 00 69 00 6E
+04E0  00 67 00 00 00 0D 00 0A 00 20 00 00 00 00 00 00
 
 
-tasm: Number of errors = 12
+tasm: Number of errors = 46

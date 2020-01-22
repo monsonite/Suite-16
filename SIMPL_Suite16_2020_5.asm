@@ -777,27 +777,29 @@ crlf:					; Output a CR/LF pair
 	
 ;------------------------------------------------------Jump_Table------------------------------------------
 
-        .WORD   $00F0     ; SPACE
-        .WORD   $00F1     ; STORE !
-        .WORD   $00F2     ; DUP   "
-        .WORD   $00F3     ; LIT   #
-        
-        .WORD   $00F4     ; SWAP  $
-        .WORD   $00F5     ; OVER  %
+;   Symbolic addresses for the primitive routines begin with an underscore so not to be confused 
+;   with assembler mnemonics  eg.  _xor
+
+
+
+        .WORD   _space    ; SPACE
+        .WORD   _store    ; STORE !
+        .WORD   _dup      ; DUP   "
+        .WORD   _lit      ; LIT   #      
+        .WORD   _swap     ; SWAP  $
+        .WORD   _over     ; OVER  %
         .WORD   _and      ; AND   &
-        .WORD   $0F00     ; quote ' 		
-        
-        .WORD   $0F00     ; BEGIN (
-        .WORD   $0F00     ; END   )
-        .WORD   $0F00     ; MUL   *
-        .WORD   _add      ; ADD   +     
-        
-        .WORD   $0F00     ; COMMA ,
+        .WORD   _pop      ; quote ' 		       
+        .WORD   _begin    ; BEGIN (
+        .WORD   _end      ; END   )
+        .WORD   _mul      ; MUL   *
+        .WORD   _add      ; ADD   +           
+        .WORD   _push     ; COMMA ,
         .WORD   _sub      ; SUB   -     
-        .WORD   Print_Num ; DOT   .     Print_Num  
-        .WORD   $00FF     ; DIV   /
+        .WORD   _print    ; DOT   .     Print a decimal number
+        .WORD   _div      ; DIV   /
 		
-		;ascii digits 0 to 9 are processed here
+		; ascii digits 0 to 9 are processed here by jumping to the number routine
 		
 		.WORD   number    ; process numeral '0'
 		.WORD   number    ; process numeral '1'
@@ -809,100 +811,90 @@ crlf:					; Output a CR/LF pair
 		.WORD   number    ; process numeral '7'
 		.WORD   number    ; process numeral '8'
 		.WORD   number    ; process numeral '9'
-		       
- 
-   
+		        
 ;-----------------------------------------Jump Table Contd-----------------------------------------
-        
-        .WORD   $0F00     ; CALL  :
-        .WORD   $0F00     ; RET   ;
-        .WORD   $0F00     ; LESS  <
-        .WORD   $0F00     ; EQ    =
+
+
+
+      
+        .WORD   _call     ; CALL  :
+        .WORD   _ret      ; RET   ;
+        .WORD   _less     ; LESS  <
+        .WORD   _eq       ; EQ    =		
+        .WORD   _greater  ; MORE  >
+        .WORD   _query    ; QUERY ?
+        .WORD   _fetch    ; FETCH @
 		
-        .WORD   $0F00     ; MORE  >
-        .WORD   $0F00     ; QUERY ?
-        .WORD   $00A0     ; FETCH @
-		.WORD   $0420     ; A
-        
+		; Uppercase ALPHA routine are allocated fixed addresses at 32 word intervals
+		
+		.WORD   $0420     ; A       
         .WORD   $0440     ; B
         .WORD   $0460     ; C
         .WORD   $0480     ; D
         .WORD   $04A0     ; E
-
         .WORD   $04C0     ; F
         .WORD   $04E0     ; G
         .WORD   $0500     ; H
-        .WORD   $0520     ; I
-        
+        .WORD   $0520     ; I        
         .WORD   $0540     ; J
         .WORD   $0560     ; K
         .WORD   $0580     ; L
         .WORD   $05A0     ; M
-
         .WORD   $05C0     ; N
         .WORD   $05E0     ; O
         .WORD   $0600     ; P
         .WORD   $0620     ; Q
-
 		.WORD   $0660     ; R
         .WORD   $0680     ; S
         .WORD   $06A0     ; T
         .WORD   $06C0     ; U
-
         .WORD   $06E0     ; V
         .WORD   $0700     ; W
         .WORD   $0720     ; X
         .WORD   $0740     ; Y
-		
 		.WORD   $0760     ; Z
+
+
 			
-        .WORD   $0F00     ; OPEN  [
-		
-        .WORD   $0F00     ; BACK  
-        .WORD   $0F00     ; CLOSE ]        
+        .WORD   _in       ; OPEN  [		
+        .WORD   _back     ; BACK  
+        .WORD   _out      ; CLOSE ]        
         .WORD   _xor      ; XOR   ^      
-        .WORD   $0F00     ; UNDER _
+        .WORD   _under    ; UNDER _		
+        .WORD   _tick     ; TICK
 		
-        .WORD   $0F00     ; TICK  
-        .WORD   $0F00     ; a
-        
+        .WORD   $0F00     ; a       
         .WORD   $00A8     ; b
         .WORD   $0F00     ; c
         .WORD   $0F00     ; d
         .WORD   $0F00     ; e
-
         .WORD   $0F00     ; f
         .WORD   $0F00     ; g
         .WORD   $0F00     ; h
-        .WORD   $0F00     ; i
-        
+        .WORD   $0F00     ; i      
         .WORD   $00B0     ; j
         .WORD   $0F00     ; k
         .WORD   $0F00     ; l
         .WORD   $0F00     ; m
-
         .WORD   $0F00     ; n
         .WORD   $0F00     ; o
         .WORD   $0F00     ; p
         .WORD   $0F00     ; q
-
         .WORD   $00B8     ; r
         .WORD   $0F00     ; s
         .WORD   $0F00     ; t
         .WORD   $0F00     ; u
-
         .WORD   $0F00     ; v
         .WORD   $0F00     ; w
         .WORD   $0F00     ; x
-        .WORD   $0F00     ; y
-    
+        .WORD   $0F00     ; y   
         .WORD   $0F00     ; z
-        .WORD   $0F00     ; BRACEL {
+		
+        .WORD   _tor      ; BRACEL {
         .WORD   _or       ; OR     |   
-        .WORD   $0F00     ; BRACER {
-        
+        .WORD   _fror     ; BRACER }        
         .WORD   _inv      ; INV    ~   
-        .WORD   $0F00     ; NOP
+        .WORD   _nop      ; NOP
 		
 		
 		; Jump_Table  96 words
@@ -1107,27 +1099,131 @@ getword:
 	OR R9
 	ST R7, R0
 	RET
+	
+;------------------------------------------Primitive Routines------------------------------------
+
+.org $0200	
+
+; All primitive address labels begin with an underscore to avaid confusion with mnemonics
+; The following 34 primitives are single ascii symbols such as $ % & * ( ) etc
+; _next is a local page trampoline to NEXT
+
+_next:
+	JMP NEXT
+
+
+_space:
+	BRA _next
+
+_store:
+	BRA _next
+
+_dup:
+	BRA _next
+
+_lit:
+	BRA _next
+
+_swap:
+    BRA _next
+
+_over:
+    BRA _next
+
+_and:
+	AND R1		; AND
+    BRA _next
+
+_pop:
+    BRA _next
+
+_begin:
+    BRA _next
+
+_end:
+    BRA _next
+
+_mul:
+    BRA _next
+
+_add:
+	ADD R1    ; ADD
+    BRA _next
+
+_push:
+    BRA _next
+
+_sub:
+	SUB R1    ; SUB
+    BRA _next
+
+_print:
+    BRA _next
+
+_div:
+    BRA _next
+
+_call:
+    BRA _next
+
+_ret:
+    BRA _next
+
+_less:
+    BRA _next
+
+_eq:
+    BRA _next
+
+_greater:
+    BRA _next
+
+_query:
+    BRA _next
+
+_fetch:
+    BRA _next
+
+_in:
+    BRA _next
+
+_back:
+    BRA _next
+
+_out:
+    BRA _next
+
+_xor:
+	XOR R1		; XOR
+    BRA _next
+
+_under:
+    BRA _next
+
+_tick:
+    BRA _next
+
+_tor:
+    BRA _next
+
+_or:
+	OR R1		; OR
+    BRA _next
+
+_fror:
+    BRA _next
+
+_inv:
+	INV  R0		; INV
+    BRA _next
+
+_nop:
+	NOP
+    BRA _next
 
 	
 	;---------------------------------------Arithmetic & Logic-----------------------------------
-_add:	  
-	  ADD R1    ; ADD
-      BRA NEXT
-_sub:	  
-      SUB R1   ; SUB
-      BRA NEXT
-_and:     
-      AND R1    ; AND
-      BRA NEXT
-_or:	  	  
-      OR  R1    ; OR
-      BRA NEXT
-_xor:
-      XOR  R1   ; XOR
-      BRA NEXT
-_inv:	  
-      INV  R1   ; INV
-      BRA NEXT
+
 _inc:
       INC  R0   ; INC
       BRA NEXT
@@ -1135,7 +1231,7 @@ _dec:
       DEC  R0   ; DEC
       BRA NEXT
 	  
-	; Arithmetic and logic operations  16 instructions  
+	; Arithmetic and logic operations  4 instructions  
 ;----------------------------------------------------------------------------------------------------------	
 
 
