@@ -1,5 +1,5 @@
-; 	SIMPL is a tiny Forth-like stack based language used to exercise the Suite_16 instruction set
-; 	and provide useful programming debugging facilities;
+; 	SIMPL is a tiny Forth-like, extensible stack based language used to exercise the Suite_16 instruction set
+; 	and provide useful programming debugging facilities
 
 ;	A Forth-Like Language in under 2048 bytes
 ; 
@@ -8,10 +8,6 @@
 ; 	Ken Boak January 2020 
 
 ; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_5.asm out.hex
-
-; 	SIMPL - a very small Forth Inspired, Extensible Language
-
-; 	Implementing the Initialisation, TextTead, TextEval and UART routines in Suite_16 assembly language
 
 ;----------------------------------------How SIMPL Works-----------------------------------------------
 
@@ -42,7 +38,7 @@
 ;----------------------------------------------------------------------------------------------------------
 ;
 ; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16 cpu
-;
+;	Additional primitives or functions can easily be added at a later date, using this framework
 
 ;	Framework Routines
 
@@ -286,15 +282,15 @@
 ;	temp14: 		.EQU R14		; used for buffer pointer
 ;	RSP: 			.EQU R15	    ; Return from alpha  next IP
 
-
-
-
 ;-------------------------------------------------------------------------------
+; 	Implementing the Initialisation, TextTead, TextEval and UART routines in Suite_16 assembly language
 
 ;   The core of the SIMPL interpreter is coded as these short routines:
 
 ;	Text_Read   Get a character from the UART and store it in the text buffer
-;	Text_Check  Examine the character to determine it is a number, an alpha, a symbol, a colon or terminator  
+;	Text_Check  Check the character to determine it is a valid character or a terminator
+;				(Valid characters are ascii $20 to $7F and may be a symbol, a number, an alpha, or a colon)
+;				Colon signifies a new definition is being written, and subsequent text is treated differently   
 ;   Number      If numerical ascii characters are found - form a 16-bit integer and put it on the stack
 ;   Jump_Table  Look up the code address associated with the character and jump to it.
 ;   Execute     Run the action routine associated with the character - then jump back to NEXT
@@ -305,8 +301,7 @@
 
 ;	It also has a "colon definition" mode - If the first character in the text buffer is a colon it
 ;   will define a new word - based on the uppercase ALPHA character that immediately follows the colon.
-;   This new definition will be stored in RAM at a fixed address calculated from the value of the ascii
-;   character.
+;   This new definition will be stored in RAM at a fixed address.
  
 ;	32 bytes of storage is allocated in RAM for each ALPHA character.
 ;   This limitation means that definitions are kept short, concise, and can be chained together to form

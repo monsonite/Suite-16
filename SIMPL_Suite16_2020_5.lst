@@ -1,5 +1,5 @@
-0001   0000             ; 	SIMPL is a tiny Forth-like stack based language used to exercise the Suite_16 instruction set
-0002   0000             ; 	and provide useful programming debugging facilities;
+0001   0000             ; 	SIMPL is a tiny Forth-like, extensible stack based language used to exercise the Suite_16 instruction set
+0002   0000             ; 	and provide useful programming debugging facilities
 0003   0000             
 0004   0000             ;	A Forth-Like Language in under 2048 bytes
 0005   0000             ; 
@@ -9,1202 +9,1197 @@
 0009   0000             
 0010   0000             ; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_5.asm out.hex
 0011   0000             
-0012   0000             ; 	SIMPL - a very small Forth Inspired, Extensible Language
+0012   0000             ;----------------------------------------How SIMPL Works-----------------------------------------------
 0013   0000             
-0014   0000             ; 	Implementing the Initialisation, TextTead, TextEval and UART routines in Suite_16 assembly language
+0014   0000             ; SIMPL provides an interpreter framework for sequentially executing single character commands from a text buffer
 0015   0000             
-0016   0000             ;----------------------------------------How SIMPL Works-----------------------------------------------
-0017   0000             
-0018   0000             ; SIMPL provides an interpreter framework for sequentially executing single character commands from a text buffer
-0019   0000             
-0020   0000             ; R8 is the instruction pointer, IP which points to the current character in the text buffer
-0021   0000             ; Fetch the character and use it to index into a jump table
-0022   0000             
-0023   0000             ; The jump table associates a code field address with each character
-0024   0000             ; Using this code field address we jump to the start of some action routine
-0025   0000             
-0026   0000             ; We need to determine whether the characers form part of a number
-0027   0000             ; these must be decoded separately and put on the stack - using the "number" routine
+0016   0000             ; R8 is the instruction pointer, IP which points to the current character in the text buffer
+0017   0000             ; Fetch the character and use it to index into a jump table
+0018   0000             
+0019   0000             ; The jump table associates a code field address with each character
+0020   0000             ; Using this code field address we jump to the start of some action routine
+0021   0000             
+0022   0000             ; We need to determine whether the characers form part of a number
+0023   0000             ; these must be decoded separately and put on the stack - using the "number" routine
+0024   0000             
+0025   0000             ; The character is either a number, a primitive or an alpha - so look up the jump address
+0026   0000             ; If it's a primitive symbol or lowercase alpha between 0x20 and 0x2F or >$39
+0027   0000             ; point to a look-up table and fetch it's code segment address
 0028   0000             
-0029   0000             ; The character is either a number, a primitive or an alpha - so look up the jump address
-0030   0000             ; If it's a primitive symbol or lowercase alpha between 0x20 and 0x2F or >$39
-0031   0000             ; point to a look-up table and fetch it's code segment address
-0032   0000             
-0033   0000             ; If the character is a numeral between ascii $30 and $39 jump to the "number" routine to process the digit
-0034   0000             ; Numbers are enummerated as 16-bit integers and put onto the stack by the number routine
-0035   0000             
-0036   0000             ; If the character is an ALPHA user word - it will execute from a fixed address stored in the jump table
-0037   0000             ; Each table entry jumps to a unique address and executes the code found at that code address
-0038   0000             
-0039   0000             ; After execution of the code block, each executed word jumps back to NEXT
-0040   0000             ; The NEXT routine fetches the next ascii character instruction from memory and the process repeats
-0041   0000             
-0042   0000             ;----------------------------------------------------------------------------------------------------------
-0043   0000             ;
-0044   0000             ; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16 cpu
-0045   0000             ;
-0046   0000             
-0047   0000             ;	Framework Routines
-0048   0000             
-0049   0000             ;	Text_Read   Get a character from the UART and store it in the text buffer
-0050   0000             ;	Text_Check  Examine the character to determine if a number, an alpha, a symbol, a colon or terminator  
-0051   0000             ;   Number      If numerical ascii characters are found - form a 16-bit integer and put it on the stack
-0052   0000             ;   Jump_Table  Look up the code address associated with the character and jump to it.
-0053   0000             ;   Execute     Run the action routine associated with the character - then jump back to NEXT
-0054   0000             ;   NEXT        Fetch the next character from the instruction buffer
-0055   0000             ;
-0056   0000             ;	Utility Routines
-0057   0000             ;
-0058   0000             ; 	Get_Number  Read the text buffer for decimal characters and form a 16-bit integer
-0059   0000             ; 	Print_Num   Print a 5 digit decimal number from a 16-bit integer
-0060   0000             ; 	Get_Hex     Read the text buffer for hexidecimal characters and form a 16-bit integer
-0061   0000             ; 	Print_Hex   Print a 4 digit hexadecimal number from a 16-bit integer
-0062   0000             ; 	HexDump		Display a block of memory in the usual hex dup fashion
-0063   0000             ;   Hex_Load	Load a hex file into memory
-0064   0000             
-0065   0000             ; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_5.asm out.hex
-0066   0000             
-0067   0000             ;-------------------------------------------------------------------------------
-0068   0000             ; Memory Map - initial implementation
-0069   0000             
-0070   0000             ; $0000   Start
-0071   0000             ; $0000   Interpreter framework: Text_Read, number, next
-0072   0000             ; $004D   Utility Print_Num
-0073   0000             ; $0074	  Utility getchar
-0074   0000             ; $007C   Utility Get_Hex
-0075   0000             ; $009D   Utility Print_Hex
-0076   0000             ; $00C5	  Utility Hex_Dump
-0077   0000             ; $00F0   Utility crlf, puts, putc
-0078   0000             ; $0100   Jump Table			$60 words	
-0079   0000             ; $0160   Utility Hex_Loader	$A0 words
-0080   0000             ; $0200	  Utility Arithmetic & Logic 	 
-0081   0000             ; $0220	  Action Routines		$200 words
-0082   0000             ; $0420   User Words        	$360 words
-0083   0000             ; $0780   Text Input Buffer 	$20 words
-0084   0000             ; $07A0   RAM (stacks etc)		$60 words
-0085   0000             ; $07FF	  Top of RAM
-0086   0000              
-0087   0000             ;--------------------------------------------TO DO---------------------------------
+0029   0000             ; If the character is a numeral between ascii $30 and $39 jump to the "number" routine to process the digit
+0030   0000             ; Numbers are enummerated as 16-bit integers and put onto the stack by the number routine
+0031   0000             
+0032   0000             ; If the character is an ALPHA user word - it will execute from a fixed address stored in the jump table
+0033   0000             ; Each table entry jumps to a unique address and executes the code found at that code address
+0034   0000             
+0035   0000             ; After execution of the code block, each executed word jumps back to NEXT
+0036   0000             ; The NEXT routine fetches the next ascii character instruction from memory and the process repeats
+0037   0000             
+0038   0000             ;----------------------------------------------------------------------------------------------------------
+0039   0000             ;
+0040   0000             ; 	This code contains the framework routines and main utility routines for SIMPL coded for the Suite-16 cpu
+0041   0000             ;	Additional primitives or functions can easily be added at a later date, using this framework
+0042   0000             
+0043   0000             ;	Framework Routines
+0044   0000             
+0045   0000             ;	Text_Read   Get a character from the UART and store it in the text buffer
+0046   0000             ;	Text_Check  Examine the character to determine if a number, an alpha, a symbol, a colon or terminator  
+0047   0000             ;   Number      If numerical ascii characters are found - form a 16-bit integer and put it on the stack
+0048   0000             ;   Jump_Table  Look up the code address associated with the character and jump to it.
+0049   0000             ;   Execute     Run the action routine associated with the character - then jump back to NEXT
+0050   0000             ;   NEXT        Fetch the next character from the instruction buffer
+0051   0000             ;
+0052   0000             ;	Utility Routines
+0053   0000             ;
+0054   0000             ; 	Get_Number  Read the text buffer for decimal characters and form a 16-bit integer
+0055   0000             ; 	Print_Num   Print a 5 digit decimal number from a 16-bit integer
+0056   0000             ; 	Get_Hex     Read the text buffer for hexidecimal characters and form a 16-bit integer
+0057   0000             ; 	Print_Hex   Print a 4 digit hexadecimal number from a 16-bit integer
+0058   0000             ; 	HexDump		Display a block of memory in the usual hex dup fashion
+0059   0000             ;   Hex_Load	Load a hex file into memory
+0060   0000             
+0061   0000             ; 	To assemble: use tasm -s -h -c -g0 -t16 SIMPL_Suite16_2020_5.asm out.hex
+0062   0000             
+0063   0000             ;-------------------------------------------------------------------------------
+0064   0000             ; Memory Map - initial implementation
+0065   0000             
+0066   0000             ; $0000   Start
+0067   0000             ; $0000   Interpreter framework: Text_Read, number, next
+0068   0000             ; $004D   Utility Print_Num
+0069   0000             ; $0074	  Utility getchar
+0070   0000             ; $007C   Utility Get_Hex
+0071   0000             ; $009D   Utility Print_Hex
+0072   0000             ; $00C5	  Utility Hex_Dump
+0073   0000             ; $00F0   Utility crlf, puts, putc
+0074   0000             ; $0100   Jump Table			$60 words	
+0075   0000             ; $0160   Utility Hex_Loader	$A0 words
+0076   0000             ; $0200	  Utility Arithmetic & Logic 	 
+0077   0000             ; $0220	  Action Routines		$200 words
+0078   0000             ; $0420   User Words        	$360 words
+0079   0000             ; $0780   Text Input Buffer 	$20 words
+0080   0000             ; $07A0   RAM (stacks etc)		$60 words
+0081   0000             ; $07FF	  Top of RAM
+0082   0000              
+0083   0000             ;--------------------------------------------TO DO---------------------------------
+0084   0000             
+0085   0000             ; Loops, I/O, Strings and Delays to be added
+0086   0000             
+0087   0000             ; This version 921600 baud serial communications
 0088   0000             
-0089   0000             ; Loops, I/O, Strings and Delays to be added
+0089   0000             ; Input and output to UART Port P2 of Nucleo STM32H743 added with "i" and "o" commands
 0090   0000             
-0091   0000             ; This version 921600 baud serial communications
+0091   0000             ;-------------------------------------------------------------------------------
 0092   0000             
-0093   0000             ; Input and output to UART Port P2 of Nucleo STM32H743 added with "i" and "o" commands
+0093   0000             ; Primitive Instructions - commence at $0200
 0094   0000             
-0095   0000             ;-------------------------------------------------------------------------------
-0096   0000             
-0097   0000             ; Primitive Instructions - commence at $0200
-0098   0000             
-0099   0000             ; These allow basic maths and logical instructions on 16-bit integers     +  -  /  *  &  |   ^   ~
-0100   0000             ; Stack Manipulation   DUP DROP PUSH POP SWAP OVER
-0101   0000             ; Memory transfers with FETCH and STORE
-0102   0000             ; Compilation mode with : and ;
-0103   0000             ; Simple decrementing loops   (..........)
-0104   0000             ; Input and Output
-0105   0000             ; Print a string contained between underscores example: _Hello World_
+0095   0000             ; These allow basic maths and logical instructions on 16-bit integers     +  -  /  *  &  |   ^   ~
+0096   0000             ; Stack Manipulation   DUP DROP PUSH POP SWAP OVER
+0097   0000             ; Memory transfers with FETCH and STORE
+0098   0000             ; Compilation mode with : and ;
+0099   0000             ; Simple decrementing loops   (..........)
+0100   0000             ; Input and Output
+0101   0000             ; Print a string contained between underscores example: _Hello World_
+0102   0000             
+0103   0000             ; Note as of 22-01-2020 - not all of these are fully implemented
+0104   0000             
+0105   0000             ;   Primitives based on ascii symbols - implemented in memory $0200 to $0420:
 0106   0000             
-0107   0000             ; Note as of 22-01-2020 - not all of these are fully implemented
-0108   0000             
-0109   0000             ;   Primitives based on ascii symbols - implemented in memory $0200 to $0420:
-0110   0000             
-0111   0000             ;	ADD       +
-0112   0000             ;	SUB       -
-0113   0000             ;	SHR       /    shift right  (divide by 2)
-0114   0000             ;	SHL       *    shift left   (multiply by 2)
-0115   0000             ;	AND       &
-0116   0000             ;	OR        |
-0117   0000             ;	XOR       ^
-0118   0000             ;	INV       ~
-0119   0000             ;	DUP       “    Duplicate the top member of the stack
-0120   0000             ;	DROP      `    Drop the top member of the stack
-0121   0000             ;	PUSH      ,
-0122   0000             ;	POP       ‘
-0123   0000             ;	SWAP      $    Swap the top and 2nd members of the stack
-0124   0000             ;	OVER      %
-0125   0000             ;	FETCH     @
-0126   0000             ;	STORE     !
-0127   0000             ;	CALL      :
-0128   0000             ;	RETURN    ;
-0129   0000             ;	JMP       \
-0130   0000             ;	JE        =    Jump if top = 0
-0131   0000             ;	JGT       >    Jump if top > 0 
-0132   0000             ;	JLT       <    Jump if top < 0
-0133   0000             ;	TO-R      {    Copy top to return stack
-0134   0000             ;	FROM-R    }    Copy return stack to top
-0135   0000             ;	LOOP-Strt (    
-0136   0000             ;	LOOP-End  )
-0137   0000             ;	IN        [    Get a byte from the port addressed by top
-0138   0000             ;	OUT       ]    Send a byte from 2nd to the port addressed by top
-0139   0000             ;	KEY       ?    Get a character from serial port
-0140   0000             ;	PRINT     _    _Print the text string enclosed between the underscores_
-0141   0000             ;	NOP       Space
-0142   0000             ;   LIT       #	   Put the following literal into top
+0107   0000             ;	ADD       +
+0108   0000             ;	SUB       -
+0109   0000             ;	SHR       /    shift right  (divide by 2)
+0110   0000             ;	SHL       *    shift left   (multiply by 2)
+0111   0000             ;	AND       &
+0112   0000             ;	OR        |
+0113   0000             ;	XOR       ^
+0114   0000             ;	INV       ~
+0115   0000             ;	DUP       “    Duplicate the top member of the stack
+0116   0000             ;	DROP      `    Drop the top member of the stack
+0117   0000             ;	PUSH      ,
+0118   0000             ;	POP       ‘
+0119   0000             ;	SWAP      $    Swap the top and 2nd members of the stack
+0120   0000             ;	OVER      %
+0121   0000             ;	FETCH     @
+0122   0000             ;	STORE     !
+0123   0000             ;	CALL      :
+0124   0000             ;	RETURN    ;
+0125   0000             ;	JMP       \
+0126   0000             ;	JE        =    Jump if top = 0
+0127   0000             ;	JGT       >    Jump if top > 0 
+0128   0000             ;	JLT       <    Jump if top < 0
+0129   0000             ;	TO-R      {    Copy top to return stack
+0130   0000             ;	FROM-R    }    Copy return stack to top
+0131   0000             ;	LOOP-Strt (    
+0132   0000             ;	LOOP-End  )
+0133   0000             ;	IN        [    Get a byte from the port addressed by top
+0134   0000             ;	OUT       ]    Send a byte from 2nd to the port addressed by top
+0135   0000             ;	KEY       ?    Get a character from serial port
+0136   0000             ;	PRINT     _    _Print the text string enclosed between the underscores_
+0137   0000             ;	NOP       Space
+0138   0000             ;   LIT       #	   Put the following literal into top
+0139   0000             
+0140   0000             ;-------------------------------------------------------------------------------
+0141   0000             
+0142   0000             ;	Lower case letters are used to execute more complex built in routines:
 0143   0000             
-0144   0000             ;-------------------------------------------------------------------------------
-0145   0000             
-0146   0000             ;	Lower case letters are used to execute more complex built in routines:
-0147   0000             
-0148   0000             ;	a
-0149   0000             ;	b		fetch a block of code via serial port
-0150   0000             ;	c
-0151   0000             ;	d		dump a block of code
-0152   0000             ;	e		execute code at a given block address
-0153   0000             ;	f
-0154   0000             ;	g
-0155   0000             ;	h       set port pin high
-0156   0000             ;	i       input byte from port
-0157   0000             ;	j
-0158   0000             ;	k       access the loop counter variable
-0159   0000             ;	l       set port pin low
-0160   0000             ;	m       milliseconds delay
-0161   0000             ;	n
-0162   0000             ;	o       output byte to port
-0163   0000             ;	p       print the top of stack to terminal as a 16-bit integer
-0164   0000             ;	q       print the ascii character at given RAM location
-0165   0000             ;	r       read input pin
-0166   0000             ;	s       sample the ADC
-0167   0000             ;	t
-0168   0000             ;	u       microseconds delay
-0169   0000             ;	v		define a variable
-0170   0000             ;	w
-0171   0000             ;	x
-0172   0000             ;	y
-0173   0000             ;	z
+0144   0000             ;	a
+0145   0000             ;	b		fetch a block of code via serial port
+0146   0000             ;	c
+0147   0000             ;	d		dump a block of code
+0148   0000             ;	e		execute code at a given block address
+0149   0000             ;	f
+0150   0000             ;	g
+0151   0000             ;	h       set port pin high
+0152   0000             ;	i       input byte from port
+0153   0000             ;	j
+0154   0000             ;	k       access the loop counter variable
+0155   0000             ;	l       set port pin low
+0156   0000             ;	m       milliseconds delay
+0157   0000             ;	n
+0158   0000             ;	o       output byte to port
+0159   0000             ;	p       print the top of stack to terminal as a 16-bit integer
+0160   0000             ;	q       print the ascii character at given RAM location
+0161   0000             ;	r       read input pin
+0162   0000             ;	s       sample the ADC
+0163   0000             ;	t
+0164   0000             ;	u       microseconds delay
+0165   0000             ;	v		define a variable
+0166   0000             ;	w
+0167   0000             ;	x
+0168   0000             ;	y
+0169   0000             ;	z
+0170   0000             
+0171   0000             ; ---------------------------------------User Defined Words----------------------------------------
+0172   0000             
+0173   0000             ;		Upper case letters A to Z are used to define 26, User "Words"
 0174   0000             
-0175   0000             ; ---------------------------------------User Defined Words----------------------------------------
-0176   0000             
-0177   0000             ;		Upper case letters A to Z are used to define 26, User "Words"
-0178   0000             
-0179   0000             ;       They are allocated fixed addresses at $20 word intervals, starting at $0420.  A = $0420, Z = $0760
-0180   0000             ;       
+0175   0000             ;       They are allocated fixed addresses at $20 word intervals, starting at $0420.  A = $0420, Z = $0760
+0176   0000             ;       
+0177   0000             
+0178   0000             ;		User Routines are defined by capital letters starting  with colon : and end with semicolon ;
+0179   0000             
+0180   0000             ;		eg  :F10(100mh200ml);		;	Flash the led 10 times - high for 100mS and low for 200mS
 0181   0000             
-0182   0000             ;		User Routines are defined by capital letters starting  with colon : and end with semicolon ;
-0183   0000             
-0184   0000             ;		eg  :F10(100mh200ml);		;	Flash the led 10 times - high for 100mS and low for 200mS
-0185   0000             
-0186   0000             ;		You can play sequences of notes (tunes) ABC etc through a small speaker  
-0187   0000             ; 		Some common notes are defined as follows
-0188   0000             
-0189   0000             ;		:A40{h1106ul1106u);			 musical note A
-0190   0000             ;		:B5{h986ul986u);			 musical note B
-0191   0000             ;       :C51{h929ul929u);			 musical note C
-0192   0000             ;       :D57{h825ul825u);			 musical note D
-0193   0000             ;       :E64{h733ul733u);			 musical note E
-0194   0000             ;       :F72{h690ul691u);			 musical note F
-0195   0000             ;       :G81{h613ul613u);			 musical note G
+0182   0000             ;		You can play sequences of notes (tunes) ABC etc through a small speaker  
+0183   0000             ; 		Some common notes are defined as follows
+0184   0000             
+0185   0000             ;		:A40{h1106ul1106u);			 musical note A
+0186   0000             ;		:B5{h986ul986u);			 musical note B
+0187   0000             ;       :C51{h929ul929u);			 musical note C
+0188   0000             ;       :D57{h825ul825u);			 musical note D
+0189   0000             ;       :E64{h733ul733u);			 musical note E
+0190   0000             ;       :F72{h690ul691u);			 musical note F
+0191   0000             ;       :G81{h613ul613u);			 musical note G
+0192   0000             
+0193   0000             ;       :H_Hello World, and welcome to SIMPL_;   A Banner Message
+0194   0000             
+0195   0000             ; The following 26 commands are normally available to users - shown here with starting address
 0196   0000             
-0197   0000             ;       :H_Hello World, and welcome to SIMPL_;   A Banner Message
-0198   0000             
-0199   0000             ; The following 26 commands are normally available to users - shown here with starting address
-0200   0000             
-0201   0000             ;	A			$0420
-0202   0000             ;	B			$0440			
-0203   0000             ;	C			$0460
-0204   0000             ;	D			$0480
-0205   0000             ;	E			$04A0
-0206   0000             ;	F			$04C0
-0207   0000             ;	G			$04E0
-0208   0000             ;	H			$0500
-0209   0000             ;	I			$0520
-0210   0000             ;	J			$0540
-0211   0000             ;	K			$0560
-0212   0000             ;	L			$0580
-0213   0000             ;	M			$05A0
-0214   0000             ;	N			$05C0
-0215   0000             ;	O			$05E0
-0216   0000             ;	P			$0600
-0217   0000             ;	Q			$0620
-0218   0000             ;	R			$0640
-0219   0000             ;	S			$0660
-0220   0000             ;	T			$0680
-0221   0000             ;	U			$06A0
-0222   0000             ;	V			$06C0
-0223   0000             ;	W			$0700
-0224   0000             ;	X			$0720
-0225   0000             ;	Y			$0740
-0226   0000             ;	Z			$0760			
+0197   0000             ;	A			$0420
+0198   0000             ;	B			$0440			
+0199   0000             ;	C			$0460
+0200   0000             ;	D			$0480
+0201   0000             ;	E			$04A0
+0202   0000             ;	F			$04C0
+0203   0000             ;	G			$04E0
+0204   0000             ;	H			$0500
+0205   0000             ;	I			$0520
+0206   0000             ;	J			$0540
+0207   0000             ;	K			$0560
+0208   0000             ;	L			$0580
+0209   0000             ;	M			$05A0
+0210   0000             ;	N			$05C0
+0211   0000             ;	O			$05E0
+0212   0000             ;	P			$0600
+0213   0000             ;	Q			$0620
+0214   0000             ;	R			$0640
+0215   0000             ;	S			$0660
+0216   0000             ;	T			$0680
+0217   0000             ;	U			$06A0
+0218   0000             ;	V			$06C0
+0219   0000             ;	W			$0700
+0220   0000             ;	X			$0720
+0221   0000             ;	Y			$0740
+0222   0000             ;	Z			$0760			
+0223   0000             
+0224   0000             ;-------------------------------------------------------------------------------
+0225   0000             
+0226   0000             ;   Examples of SIMPL phrases
 0227   0000             
-0228   0000             ;-------------------------------------------------------------------------------
+0228   0000             ; 	eg add 123 and 456 and print the result to the terminal
 0229   0000             
-0230   0000             ;   Examples of SIMPL phrases
+0230   0000             ; 	123 456+p
 0231   0000             
-0232   0000             ; 	eg add 123 and 456 and print the result to the terminal
+0232   0000             ;	Loop 10 times printing "Spurs are Fab!"
 0233   0000             
-0234   0000             ; 	123 456+p
+0234   0000             ; 	10(_Spurs are Fab!_)
 0235   0000             
-0236   0000             ;	Loop 10 times printing "Spurs are Fab!"
+0236   0000             ;   Flash a LED 10 times 100mS on 200mS off
 0237   0000             
-0238   0000             ; 	10(_Spurs are Fab!_)
+0238   0000             ;   10(h100ml200m)
 0239   0000             
-0240   0000             ;   Flash a LED 10 times 100mS on 200mS off
-0241   0000             
-0242   0000             ;   10(h100ml200m)
-0243   0000             
+0240   0000             
+0241   0000             ;   Toggle a port pin at 1MHz   1000(hlhlhlhlhlhlhlhlhlhl)
+0242   0000             
+0243   0000             ;-------------------------------------------------------------------------------
 0244   0000             
-0245   0000             ;   Toggle a port pin at 1MHz   1000(hlhlhlhlhlhlhlhlhlhl)
+0245   0000             
 0246   0000             
-0247   0000             ;-------------------------------------------------------------------------------
+0247   0000             ;   SIMPL is basically a character interpreter based on a switch statement contained within a loop
 0248   0000             
-0249   0000             
-0250   0000             
-0251   0000             ;   SIMPL is basically a character interpreter based on a switch statement contained within a loop
-0252   0000             
-0253   0000             ; 	In assembly language the switch statement is usually best implemented as a jump table.
-0254   0000             ;   An Instruction Pointer IP, selects the next instruction from an array of characters in RAM
-0255   0000             ;   Unlike Forth that uses words stored in a dictionary, SIMPL uses single printable ascii characters
-0256   0000             ;   These characters are chosen to either be familiar symbols (+ -  * / etc) or have a high mnemonic value
-0257   0000             ;   The ascii character command is used as an index into the jump table
-0258   0000             ; 	The jump table contains the starting addresses of all the primitive commands and routines.
-0259   0000             ;   After indexing into the table, the interpreter jumps to the address it finds and then executes code
-0260   0000             ;   starting from that address.
-0261   0000             ; 	At the end of the code block, the interpreter jumps back to NEXT, to fetch the next command.
+0249   0000             ; 	In assembly language the switch statement is usually best implemented as a jump table.
+0250   0000             ;   An Instruction Pointer IP, selects the next instruction from an array of characters in RAM
+0251   0000             ;   Unlike Forth that uses words stored in a dictionary, SIMPL uses single printable ascii characters
+0252   0000             ;   These characters are chosen to either be familiar symbols (+ -  * / etc) or have a high mnemonic value
+0253   0000             ;   The ascii character command is used as an index into the jump table
+0254   0000             ; 	The jump table contains the starting addresses of all the primitive commands and routines.
+0255   0000             ;   After indexing into the table, the interpreter jumps to the address it finds and then executes code
+0256   0000             ;   starting from that address.
+0257   0000             ; 	At the end of the code block, the interpreter jumps back to NEXT, to fetch the next command.
+0258   0000             
+0259   0000             ;-------------------------------------------------------------------------------------------------
+0260   0000             
+0261   0000             ; Register Usage and constants
 0262   0000             
-0263   0000             ;-------------------------------------------------------------------------------------------------
-0264   0000             
-0265   0000             ; Register Usage and constants
-0266   0000             
+0263   0000             
+0264   0000             ; CPU registers - yet to be fully defined for Suite_16
+0265   0000             
+0266   0000             ; Register Usage
 0267   0000             
-0268   0000             ; CPU registers - yet to be fully defined for Suite_16
-0269   0000             
-0270   0000             ; Register Usage
-0271   0000             
-0272   0000             ;	tos: 			.EQU R0			; top of stack
-0273   0000             ;	sos:			.EQU R1			; second on stack
-0274   0000             ;	temp2:			.EQU R2
-0275   0000             ;	temp3:			.EQU R3
-0276   0000             ;	temp4:			.EQU R4
-0277   0000             ;	stack: 			.EQU R5
-0278   0000             ;	scratch6:		.EQU R6
-0279   0000             ;	temp7: 			.EQU R7			; loop start
-0280   0000             ;	ip: 			.EQU R8			; instruction pointer
-0281   0000             ;	temp9: 			.EQU R9			; millisecond delay
-0282   0000             ;	temp10: 		.EQU R10        ; microsecond delay
-0283   0000             ;	temp11:			.EQU R11		; scratch
-0284   0000             ;	instr: 			.EQU R12		; instruction fetched into R12 for decoding
-0285   0000             ;	temp13:			.EQU R13		; arithmetic / scratch
-0286   0000             ;	temp14: 		.EQU R14		; used for buffer pointer
-0287   0000             ;	RSP: 			.EQU R15	    ; Return from alpha  next IP
-0288   0000             
+0268   0000             ;	tos: 			.EQU R0			; top of stack
+0269   0000             ;	sos:			.EQU R1			; second on stack
+0270   0000             ;	temp2:			.EQU R2
+0271   0000             ;	temp3:			.EQU R3
+0272   0000             ;	temp4:			.EQU R4
+0273   0000             ;	stack: 			.EQU R5
+0274   0000             ;	scratch6:		.EQU R6
+0275   0000             ;	temp7: 			.EQU R7			; loop start
+0276   0000             ;	ip: 			.EQU R8			; instruction pointer
+0277   0000             ;	temp9: 			.EQU R9			; millisecond delay
+0278   0000             ;	temp10: 		.EQU R10        ; microsecond delay
+0279   0000             ;	temp11:			.EQU R11		; scratch
+0280   0000             ;	instr: 			.EQU R12		; instruction fetched into R12 for decoding
+0281   0000             ;	temp13:			.EQU R13		; arithmetic / scratch
+0282   0000             ;	temp14: 		.EQU R14		; used for buffer pointer
+0283   0000             ;	RSP: 			.EQU R15	    ; Return from alpha  next IP
+0284   0000             
+0285   0000             ;-------------------------------------------------------------------------------
+0286   0000             ; 	Implementing the Initialisation, TextTead, TextEval and UART routines in Suite_16 assembly language
+0287   0000             
+0288   0000             ;   The core of the SIMPL interpreter is coded as these short routines:
 0289   0000             
-0290   0000             
-0291   0000             
-0292   0000             ;-------------------------------------------------------------------------------
-0293   0000             
-0294   0000             ;   The core of the SIMPL interpreter is coded as these short routines:
-0295   0000             
-0296   0000             ;	Text_Read   Get a character from the UART and store it in the text buffer
-0297   0000             ;	Text_Check  Examine the character to determine it is a number, an alpha, a symbol, a colon or terminator  
-0298   0000             ;   Number      If numerical ascii characters are found - form a 16-bit integer and put it on the stack
-0299   0000             ;   Jump_Table  Look up the code address associated with the character and jump to it.
-0300   0000             ;   Execute     Run the action routine associated with the character - then jump back to NEXT
-0301   0000             ;   NEXT        Fetch the next character from the instruction buffer
-0302   0000             
-0303   0000             ;	SIMPL has an immediate mode - where a phrase of commands typed at the keyboard will be executed
-0304   0000             ;	immediately after the return key is pressed.
-0305   0000             
-0306   0000             ;	It also has a "colon definition" mode - If the first character in the text buffer is a colon it
-0307   0000             ;   will define a new word - based on the uppercase ALPHA character that immediately follows the colon.
-0308   0000             ;   This new definition will be stored in RAM at a fixed address calculated from the value of the ascii
-0309   0000             ;   character.
-0310   0000              
-0311   0000             ;	32 bytes of storage is allocated in RAM for each ALPHA character.
-0312   0000             ;   This limitation means that definitions are kept short, concise, and can be chained together to form
-0313   0000             ; 	larger program constructs.
-0314   0000             
-0315   0000             ;----------------------------------------------------------------------------------------------------------
+0290   0000             ;	Text_Read   Get a character from the UART and store it in the text buffer
+0291   0000             ;	Text_Check  Check the character to determine it is a valid character or a terminator
+0292   0000             ;				(Valid characters are ascii $20 to $7F and may be a symbol, a number, an alpha, or a colon)
+0293   0000             ;				Colon signifies a new definition is being written, and subsequent text is treated differently   
+0294   0000             ;   Number      If numerical ascii characters are found - form a 16-bit integer and put it on the stack
+0295   0000             ;   Jump_Table  Look up the code address associated with the character and jump to it.
+0296   0000             ;   Execute     Run the action routine associated with the character - then jump back to NEXT
+0297   0000             ;   NEXT        Fetch the next character from the instruction buffer
+0298   0000             
+0299   0000             ;	SIMPL has an immediate mode - where a phrase of commands typed at the keyboard will be executed
+0300   0000             ;	immediately after the return key is pressed.
+0301   0000             
+0302   0000             ;	It also has a "colon definition" mode - If the first character in the text buffer is a colon it
+0303   0000             ;   will define a new word - based on the uppercase ALPHA character that immediately follows the colon.
+0304   0000             ;   This new definition will be stored in RAM at a fixed address.
+0305   0000              
+0306   0000             ;	32 bytes of storage is allocated in RAM for each ALPHA character.
+0307   0000             ;   This limitation means that definitions are kept short, concise, and can be chained together to form
+0308   0000             ; 	larger program constructs.
+0309   0000             
+0310   0000             ;----------------------------------------------------------------------------------------------------------
+0311   0000             
+0312   0000             EOS:         	.EQU $0000      	; End of string
+0313   0000             
+0314   0000             .org $0000
+0315   0000             start:
 0316   0000             
-0317   0000             EOS:         	.EQU $0000      	; End of string
-0318   0000             
-0319   0000             .org $0000
-0320   0000             start:
-0321   0000             
-0322   0000             ;--------------------------------------Text_Read-----------------------------------------------------------
-0323   0000             ;
-0324   0000             ; Text_Read - This implements the SIMPL interpreter in Suite_16 assembly Language
-0325   0000             ;
-0326   0000             ;----------------------------------------------------------------------------------------------------------
-0327   0000             
-0328   0000             ; Get a character from the UART and store it in the input buffer starting at 0x0780
-0329   0000             
-0330   0000             ; Supports immediate mode - where characters are stored at 0x200 and executed directly
-0331   0000             ; Supports compiled mode - where string starts with a colon and the next character "NAME" is an upper case alpha
-0332   0000             ; String is stored at 0x400 plus a multiple of 32 byte offset according to the value of "NAME"
-0333   0000             
-0334   0000             ; Register Usage 
-0335   0000             
-0336   0000             ;  The input buffer - starts at $0780
-0337   0000             ;  R0 receives the next character from the text buffer pointed to by R8
-0338   0000             ;  Test it against CR, NL, unprintable characters and colon
-0339   0000             ;  If it starts with a colon - get the next character (the NAME) and store at a specific location in memory
-0340   0000             ;  If it does not start with a colon, interpret and execute each character in turn
-0341   0000             
-0342   0000             ;----------------------------------------------------------------------------------------------------------
-0343   0000             
-0344   0000             Text_Read:
-0345   0000             
-0346   0000 00 72           BRA getchar             ; Get the input buffer from the UART
-0347   0001             	
-0348   0001 18 00 07 80 	SET R8, $780			; R8 points to char buffer
-0349   0003             		
-0350   0003             Text_Check:
-0351   0003             
-0352   0003 E8 00           INC R8					; Get the next character from the buffer
-0353   0004             	
-0354   0004 48 00       	LD  R0, @R8				; Get it's ascii value into the accumulator
-0355   0005             	
-0356   0005 34 00       	ST  R4, R0			    ; Temporary store in R4
-0357   0006             	
-0358   0006 0B 0D       	SBI $0D					; Is it a carriage return?
-0359   0007 06 25       	BEQ textEnd
-0360   0008 24 00       	LD  R0,R4
-0361   0009 0B 0A       	SBI $0A					; Is it a newline?
-0362   000A 06 25       	BEQ textEnd
-0363   000B 24 00       	LD  R0,R4
-0364   000C 0B 20       	SBI $20					; Is it unprintable - Too low?
-0365   000D 04 24       	BLE nonValid
-0366   000E 24 00       	LD  R0,R4
-0367   000F 0B 7F       	SBI $7F					; Is it unprintable - Too High?
-0368   0010 03 24       	BGE nonValid
-0369   0011 24 00       	LD  R0,R4
-0370   0012 0B 3E       	SBI $3E					; Is it a colon?
-0371   0013 05 21       	BNE notColon
-0372   0014             	
-0373   0014             Colon:						; If the input character is a colon
-0374   0014             
-0375   0014 08 00 00 72 	CALL    getchar    	    ; get the next character - which is the NAME
-0376   0016 0B 50       	SBI     $50				; subtract ascii "A" - $11 from R0 - puts it on $20 boundaries starting	at $220
-0377   0017 A0 00       	ADD		R0				; x2
-0378   0018 A0 00       	ADD		R0				; x4
-0379   0019 A0 00       	ADD		R0				; x8
-0380   001A A0 00       	ADD     R0				; x16
-0381   001B A0 00       	ADD		R0				; x32
-0382   001C             	
-0383   001C A8 00       	ADD		R8				; Add to the instruction pointer R8
-0384   001D 32 00       	ST		R2, R0			; Temporary store this buffer address in R2
-0385   001E 24 00       	LD		R0, R4			; Get the character back
-0386   001F 52 00       	ST      @R2, R0			; Store it in the correct place in correct definition buffer
-0387   0020             	
-0388   0020 00 24       	BRA		nonValid		; move on to next step
-0389   0021             
-0390   0021             notColon:		
-0391   0021 E8 00       	INC   R8                ; Increment buffer pointer R8
-0392   0022 24 00       	LD	  R0, R4			; Get the character back
-0393   0023 58 00       	ST    @R8, R0			; Store character in RAM buffer indexed by R8
-0394   0024             
-0395   0024             nonValid:
-0396   0024             
-0397   0024 00 72       	BRA   getchar
-0398   0025             	
-0399   0025             textEnd:		
-0400   0025             
-0401   0025 10 00 00 80 	SET R0, $80
-0402   0027 58 00       	ST	@R8, R0				; Put a null terminating (0x80) zero on the end of the buffer
-0403   0028 18 00 07 80 	SET R8, $0780			; set ip (instruction pointer) - to start of input buffer in RAM at address 0x0200
-0404   002A 00 47       	BRA	    NEXT			; get the next instruction
-0405   002B             
-0406   002B             ; Text_Read  43 Instruction words
-0407   002B             	
-0408   002B             ;---------------------------------------------Number--------------------------------------------------------	
-0409   002B             	
-0410   002B             	
-0411   002B             number:						; Accept up to 5 decimal digits from serial and put into memory as 16-bit integer
-0412   002B             
-0413   002B 17 00 00 00 	SET R7, 0		    	; Clear R7	
-0414   002D 18 00 07 80 	SET R8, $0780		    ; R8 points to char buffer
-0415   002F             	
-0416   002F             number1:	
-0417   002F             	
-0418   002F 48 00       	LD R0, @R8				; Get the first character	
-0419   0030 34 00       	ST R4, R0				; Temporary store in R4
-0420   0031             	
-0421   0031 E8 00       	INC R8					; Point to next character	
-0422   0032 48 00       	LD R0, @R8				; Get the next character
-0423   0033             	
-0424   0033 0B 30       	SBI  $30				; Is it bigger than $30 ?	
-0425   0034 02 42       	BLT endNumber
-0426   0035             	
-0427   0035 0B 0A       	SBI $0A					; Is it less than $10	
-0428   0036 03 42       	BGE endNumber
-0429   0037             	
-0430   0037 24 00       	LD R0, R4				; Get original character back
-0431   0038 0B 30       	SBI  $30				; Form an ascii digit
-0432   0039             	
-0433   0039 A7 00       	ADD R7					; Add in accumulating total from R7
-0434   003A             	
-0435   003A             times10:	
-0436   003A             	
-0437   003A 35 00       	ST R5,R0				; Digit is now in R5	
-0438   003B A5 00       	ADD R5					; R0 = 2 Times R0 
-0439   003C A0 00       	ADD R0					; 4X
-0440   003D A0 00       	ADD R0					; 8X
-0441   003E A5 00       	ADD R5					; 9X
-0442   003F A5 00       	ADD R5					; 10X
-0443   0040             	
-0444   0040 37 00       	ST R7, R0				; R7 is accumulation of all the digits multiplied by powers of 10
-0445   0041             	
-0446   0041 00 2F       	BRA number1				; go around and process the remaining digits
-0447   0042             	
-0448   0042             endNumber:
-0449   0042             
-0450   0042 24 00       	LD R0, R4				; Get the last digit back	
-0451   0043 A7 00       	ADD R7					; Add in the accumulated sum
-0452   0044 32 00       	ST  R2,R0				; Temporary store integer number in scratch reg R2
-0453   0045             	
-0454   0045 17 00 00 00 	SET R7,0				; Don't forget to clear R7
-0455   0047             	
-0456   0047             ; number  28 Instruction words	
+0317   0000             ;--------------------------------------Text_Read-----------------------------------------------------------
+0318   0000             ;
+0319   0000             ; Text_Read - This implements the SIMPL interpreter in Suite_16 assembly Language
+0320   0000             ;
+0321   0000             ;----------------------------------------------------------------------------------------------------------
+0322   0000             
+0323   0000             ; Get a character from the UART and store it in the input buffer starting at 0x0780
+0324   0000             
+0325   0000             ; Supports immediate mode - where characters are stored at 0x200 and executed directly
+0326   0000             ; Supports compiled mode - where string starts with a colon and the next character "NAME" is an upper case alpha
+0327   0000             ; String is stored at 0x400 plus a multiple of 32 byte offset according to the value of "NAME"
+0328   0000             
+0329   0000             ; Register Usage 
+0330   0000             
+0331   0000             ;  The input buffer - starts at $0780
+0332   0000             ;  R0 receives the next character from the text buffer pointed to by R8
+0333   0000             ;  Test it against CR, NL, unprintable characters and colon
+0334   0000             ;  If it starts with a colon - get the next character (the NAME) and store at a specific location in memory
+0335   0000             ;  If it does not start with a colon, interpret and execute each character in turn
+0336   0000             
+0337   0000             ;----------------------------------------------------------------------------------------------------------
+0338   0000             
+0339   0000             Text_Read:
+0340   0000             
+0341   0000 00 72           BRA getchar             ; Get the input buffer from the UART
+0342   0001             	
+0343   0001 18 00 07 80 	SET R8, $780			; R8 points to char buffer
+0344   0003             		
+0345   0003             Text_Check:
+0346   0003             
+0347   0003 E8 00           INC R8					; Get the next character from the buffer
+0348   0004             	
+0349   0004 48 00       	LD  R0, @R8				; Get it's ascii value into the accumulator
+0350   0005             	
+0351   0005 34 00       	ST  R4, R0			    ; Temporary store in R4
+0352   0006             	
+0353   0006 0B 0D       	SBI $0D					; Is it a carriage return?
+0354   0007 06 25       	BEQ textEnd
+0355   0008 24 00       	LD  R0,R4
+0356   0009 0B 0A       	SBI $0A					; Is it a newline?
+0357   000A 06 25       	BEQ textEnd
+0358   000B 24 00       	LD  R0,R4
+0359   000C 0B 20       	SBI $20					; Is it unprintable - Too low?
+0360   000D 04 24       	BLE nonValid
+0361   000E 24 00       	LD  R0,R4
+0362   000F 0B 7F       	SBI $7F					; Is it unprintable - Too High?
+0363   0010 03 24       	BGE nonValid
+0364   0011 24 00       	LD  R0,R4
+0365   0012 0B 3E       	SBI $3E					; Is it a colon?
+0366   0013 05 21       	BNE notColon
+0367   0014             	
+0368   0014             Colon:						; If the input character is a colon
+0369   0014             
+0370   0014 08 00 00 72 	CALL    getchar    	    ; get the next character - which is the NAME
+0371   0016 0B 50       	SBI     $50				; subtract ascii "A" - $11 from R0 - puts it on $20 boundaries starting	at $220
+0372   0017 A0 00       	ADD		R0				; x2
+0373   0018 A0 00       	ADD		R0				; x4
+0374   0019 A0 00       	ADD		R0				; x8
+0375   001A A0 00       	ADD     R0				; x16
+0376   001B A0 00       	ADD		R0				; x32
+0377   001C             	
+0378   001C A8 00       	ADD		R8				; Add to the instruction pointer R8
+0379   001D 32 00       	ST		R2, R0			; Temporary store this buffer address in R2
+0380   001E 24 00       	LD		R0, R4			; Get the character back
+0381   001F 52 00       	ST      @R2, R0			; Store it in the correct place in correct definition buffer
+0382   0020             	
+0383   0020 00 24       	BRA		nonValid		; move on to next step
+0384   0021             
+0385   0021             notColon:		
+0386   0021 E8 00       	INC   R8                ; Increment buffer pointer R8
+0387   0022 24 00       	LD	  R0, R4			; Get the character back
+0388   0023 58 00       	ST    @R8, R0			; Store character in RAM buffer indexed by R8
+0389   0024             
+0390   0024             nonValid:
+0391   0024             
+0392   0024 00 72       	BRA   getchar
+0393   0025             	
+0394   0025             textEnd:		
+0395   0025             
+0396   0025 10 00 00 80 	SET R0, $80
+0397   0027 58 00       	ST	@R8, R0				; Put a null terminating (0x80) zero on the end of the buffer
+0398   0028 18 00 07 80 	SET R8, $0780			; set ip (instruction pointer) - to start of input buffer in RAM at address 0x0200
+0399   002A 00 47       	BRA	    NEXT			; get the next instruction
+0400   002B             
+0401   002B             ; Text_Read  43 Instruction words
+0402   002B             	
+0403   002B             ;---------------------------------------------Number--------------------------------------------------------	
+0404   002B             	
+0405   002B             	
+0406   002B             number:						; Accept up to 5 decimal digits from serial and put into memory as 16-bit integer
+0407   002B             
+0408   002B 17 00 00 00 	SET R7, 0		    	; Clear R7	
+0409   002D 18 00 07 80 	SET R8, $0780		    ; R8 points to char buffer
+0410   002F             	
+0411   002F             number1:	
+0412   002F             	
+0413   002F 48 00       	LD R0, @R8				; Get the first character	
+0414   0030 34 00       	ST R4, R0				; Temporary store in R4
+0415   0031             	
+0416   0031 E8 00       	INC R8					; Point to next character	
+0417   0032 48 00       	LD R0, @R8				; Get the next character
+0418   0033             	
+0419   0033 0B 30       	SBI  $30				; Is it bigger than $30 ?	
+0420   0034 02 42       	BLT endNumber
+0421   0035             	
+0422   0035 0B 0A       	SBI $0A					; Is it less than $10	
+0423   0036 03 42       	BGE endNumber
+0424   0037             	
+0425   0037 24 00       	LD R0, R4				; Get original character back
+0426   0038 0B 30       	SBI  $30				; Form an ascii digit
+0427   0039             	
+0428   0039 A7 00       	ADD R7					; Add in accumulating total from R7
+0429   003A             	
+0430   003A             times10:	
+0431   003A             	
+0432   003A 35 00       	ST R5,R0				; Digit is now in R5	
+0433   003B A5 00       	ADD R5					; R0 = 2 Times R0 
+0434   003C A0 00       	ADD R0					; 4X
+0435   003D A0 00       	ADD R0					; 8X
+0436   003E A5 00       	ADD R5					; 9X
+0437   003F A5 00       	ADD R5					; 10X
+0438   0040             	
+0439   0040 37 00       	ST R7, R0				; R7 is accumulation of all the digits multiplied by powers of 10
+0440   0041             	
+0441   0041 00 2F       	BRA number1				; go around and process the remaining digits
+0442   0042             	
+0443   0042             endNumber:
+0444   0042             
+0445   0042 24 00       	LD R0, R4				; Get the last digit back	
+0446   0043 A7 00       	ADD R7					; Add in the accumulated sum
+0447   0044 32 00       	ST  R2,R0				; Temporary store integer number in scratch reg R2
+0448   0045             	
+0449   0045 17 00 00 00 	SET R7,0				; Don't forget to clear R7
+0450   0047             	
+0451   0047             ; number  28 Instruction words	
+0452   0047             
+0453   0047             ;---------------------------------------------Next-------------------------------------------------------
+0454   0047             ; Next fetches the next instruction and decides what to do with it
+0455   0047             ; The character is either a primitive or an ALPHA - so index into jump table to get the execution address 
+0456   0047             ; Restore R to start of RAM buffer
 0457   0047             
-0458   0047             ;---------------------------------------------Next-------------------------------------------------------
-0459   0047             ; Next fetches the next instruction and decides what to do with it
-0460   0047             ; The character is either a primitive or an ALPHA - so index into jump table to get the execution address 
-0461   0047             ; Restore R to start of RAM buffer
-0462   0047             
-0463   0047             NEXT:
-0464   0047             
-0465   0047 E8 00       	INC R8					; Point to the next character
-0466   0048 48 00       	LD R0, @R8				; Get the next character into R0
-0467   0049 0A E0       	ADI $E0					; Add $E0 to form an address in the jump table range of $100 to $15F
-0468   004A 33 00       	ST R3,R0				; Temporary store to R3
-0469   004B             	
-0470   004B 43 00       	LD R0, @R3				; Index into jump table	
-0471   004C 00 E0       	.WORD $E000             ; JMP @ R0 Jump to the command routine (if its a ascii numeral - jump to number routine)
-0472   004D             
-0473   004D             ; next 6 Instruction words	
-0474   004D             	
-0475   004D             ;-----------------------------------------Print_Num---------------------------------------------
+0458   0047             NEXT:
+0459   0047             
+0460   0047 E8 00       	INC R8					; Point to the next character
+0461   0048 48 00       	LD R0, @R8				; Get the next character into R0
+0462   0049 0A E0       	ADI $E0					; Add $E0 to form an address in the jump table range of $100 to $15F
+0463   004A 33 00       	ST R3,R0				; Temporary store to R3
+0464   004B             	
+0465   004B 43 00       	LD R0, @R3				; Index into jump table	
+0466   004C 00 E0       	.WORD $E000             ; JMP @ R0 Jump to the command routine (if its a ascii numeral - jump to number routine)
+0467   004D             
+0468   004D             ; next 6 Instruction words	
+0469   004D             	
+0470   004D             ;-----------------------------------------Print_Num---------------------------------------------
+0471   004D             
+0472   004D             ; Print_Num  Take the 16 bit value in top of stack register and prints it to terminal as an integer
+0473   004D             ; Method -  repeated subtraction of powers of 10
+0474   004D             
+0475   004D             Print_Num:
 0476   004D             
-0477   004D             ; Print_Num  Take the 16 bit value in top of stack register and prints it to terminal as an integer
-0478   004D             ; Method -  repeated subtraction of powers of 10
-0479   004D             
-0480   004D             Print_Num:
-0481   004D             
-0482   004D                 ;  Prints out the value of R0 as a 5 digit decimal number to the terminal
-0483   004D                 ;  Leading zeroes are not suppressed
-0484   004D                 ;  R1 = Decimation Value
-0485   004D                 ;  R2 = current digit 
-0486   004D                 ;  R4 = temporary storage for accumulator (decimated value)
-0487   004D             	
-0488   004D 12 00 00 00 	SET R2, 0
-0489   004F             	
-0490   004F 11 00 27 10 	SET R1, 10000
-0491   0051 08 00 00 65 	CALL decimate
-0492   0053             	
-0493   0053 11 00 03 E8 	SET R1, 1000
-0494   0055 08 00 00 65 	CALL decimate
-0495   0057             	
-0496   0057 11 00 00 64 	SET R1, 100
-0497   0059 08 00 00 65 	CALL decimate
-0498   005B             	
-0499   005B 11 00 00 0A 	SET R1, 10
-0500   005D 08 00 00 65 	CALL decimate
-0501   005F             	
-0502   005F 0A 30       	ADI $30					; make the value an ascii numeral
-0503   0060 0C 00       	OUT						; print to terminal
-0504   0061 B4 00       	SUB R4
-0505   0062             	
-0506   0062 08 00 00 EF 	CALL crlf				; Output a CRLF
-0507   0064             	
-0508   0064 00 47       	BRA NEXT
-0509   0065             		
-0510   0065             decimate:
-0511   0065             
-0512   0065 B1 00       	SUB R1					; subtract the power of 10 until R0 goes negative
-0513   0066 02 69           BLT value
-0514   0067 E2 00           INC R2					; keep a count of how many times you subtract the decimation factor
-0515   0068 00 65           BRA decimate	
-0516   0069             	
-0517   0069             value:
-0518   0069             
-0519   0069 34 00       	ST R4, R0
-0520   006A 22 00       	LD R0, R2
-0521   006B 0A 30       	ADI $30				    ; Add 0x30 to make R0 a printable digit
-0522   006C 0C 00       	OUT						; print a digit
-0523   006D             	
-0524   006D 24 00       	LD R0, R4
-0525   006E A1 00       	ADD R1
-0526   006F 12 00 00 00 	SET R2, 0				; reset R2
-0527   0071             	
-0528   0071 09 00       	RET
-0529   0072             	
-0530   0072             ; Print_Num   39 instruction words	
+0477   004D                 ;  Prints out the value of R0 as a 5 digit decimal number to the terminal
+0478   004D                 ;  Leading zeroes are not suppressed
+0479   004D                 ;  R1 = Decimation Value
+0480   004D                 ;  R2 = current digit 
+0481   004D                 ;  R4 = temporary storage for accumulator (decimated value)
+0482   004D             	
+0483   004D 12 00 00 00 	SET R2, 0
+0484   004F             	
+0485   004F 11 00 27 10 	SET R1, 10000
+0486   0051 08 00 00 65 	CALL decimate
+0487   0053             	
+0488   0053 11 00 03 E8 	SET R1, 1000
+0489   0055 08 00 00 65 	CALL decimate
+0490   0057             	
+0491   0057 11 00 00 64 	SET R1, 100
+0492   0059 08 00 00 65 	CALL decimate
+0493   005B             	
+0494   005B 11 00 00 0A 	SET R1, 10
+0495   005D 08 00 00 65 	CALL decimate
+0496   005F             	
+0497   005F 0A 30       	ADI $30					; make the value an ascii numeral
+0498   0060 0C 00       	OUT						; print to terminal
+0499   0061 B4 00       	SUB R4
+0500   0062             	
+0501   0062 08 00 00 EF 	CALL crlf				; Output a CRLF
+0502   0064             	
+0503   0064 00 47       	BRA NEXT
+0504   0065             		
+0505   0065             decimate:
+0506   0065             
+0507   0065 B1 00       	SUB R1					; subtract the power of 10 until R0 goes negative
+0508   0066 02 69           BLT value
+0509   0067 E2 00           INC R2					; keep a count of how many times you subtract the decimation factor
+0510   0068 00 65           BRA decimate	
+0511   0069             	
+0512   0069             value:
+0513   0069             
+0514   0069 34 00       	ST R4, R0
+0515   006A 22 00       	LD R0, R2
+0516   006B 0A 30       	ADI $30				    ; Add 0x30 to make R0 a printable digit
+0517   006C 0C 00       	OUT						; print a digit
+0518   006D             	
+0519   006D 24 00       	LD R0, R4
+0520   006E A1 00       	ADD R1
+0521   006F 12 00 00 00 	SET R2, 0				; reset R2
+0522   0071             	
+0523   0071 09 00       	RET
+0524   0072             	
+0525   0072             ; Print_Num   39 instruction words	
+0526   0072             	
+0527   0072             	
+0528   0072             ;------------------------------------------------getchar-----------------------------------------------
+0529   0072             ; 	
+0530   0072             getchar:	
 0531   0072             	
-0532   0072             	
-0533   0072             ;------------------------------------------------getchar-----------------------------------------------
-0534   0072             ; 	
-0535   0072             getchar:	
-0536   0072             	
-0537   0072             
-0538   0072 0D 00       	IN						; Get character
-0539   0073             	
-0540   0073 11 00 07 80 	SET R1, $0780			; R1 points to char buffer
-0541   0075             	
-0542   0075             loop1:	
-0543   0075 41 00       	LD R0, @R1				; get first character
-0544   0076 0C 00       	OUT                     ; output character
-0545   0077 E1 00       	INC R1
-0546   0078 01 75       	BGT loop1				; get characters until you find an EOS
-0547   0079 00 03       	BRA Text_Check		    ; Back to Text_Check when you get an EOS
-0548   007A             	
-0549   007A             	; getchar  8 instructions 
-0550   007A             	
-0551   007A             ;-----------------------------------------Get_Hex---------------------------------------------
-0552   007A             	
-0553   007A             Get_Hex:
-0554   007A             
-0555   007A             	; Accepts a hexadecimal number up to FFFF from terminal input buffer
-0556   007A             	; converts it to an integer and puts it into register R0
-0557   007A             	; It can then be printed out as a decimal using Print_Num - for checking integrity
-0558   007A             	; R1 is the pointer in the text buffer - which starts at 0x0780
-0559   007A             	; R4 is used as a temporary store for the character in the accumulator R0
-0560   007A             	; R5 is used in the "Times 16" routine
-0561   007A             	; R7 is used to accumulate the powers of 16 when forming the integer in R0
-0562   007A             	
-0563   007A 11 00 07 80 	SET R1, $0780				; R1 is start of text buffer
-0564   007C 17 00 00 00 	SET R7, 0				; Clear R7
-0565   007E             
-0566   007E             nextchar:
-0567   007E             
-0568   007E 41 00       	LD R0, @R1				; get the first character
-0569   007F 34 00       	ST R4, R0				; temporary store
-0570   0080 E1 00       	INC R1
-0571   0081 41 00       	LD R0, @R1				; get the next character to see if it is numeric or terminator
-0572   0082             	
-0573   0082 0B 30       	SBI $30					; Is it bigger than 0x30?
-0574   0083 02 8F       	BLT quit
-0575   0084 0B 17       	SBI 23					; Is is bigger than ascii 'F'
-0576   0085 03 8F       	BGE quit
-0577   0086             	
-0578   0086 08 00 00 93 	CALL modify
-0579   0088             	
-0580   0088 A7 00       	ADD R7
-0581   0089 A0 00       	ADD R0					; 2X
-0582   008A A0 00       	ADD R0					; 4X
-0583   008B A0 00       	ADD R0					; 8X
-0584   008C A0 00       	ADD R0					; 16X
-0585   008D             	
-0586   008D 37 00       	ST  R7, R0				; R7 is the accumulating sum
-0587   008E             	
-0588   008E 00 7E       	BRA nextchar
-0589   008F             	
-0590   008F             quit:	
-0591   008F 08 00 00 93 	CALL modify
-0592   0091             	
-0593   0091 A7 00       	ADD R7					; Add in the final digit
-0594   0092 00 4D       	BRA Print_Num			; Print it out in decimal
+0532   0072             
+0533   0072 0D 00       	IN						; Get character
+0534   0073             	
+0535   0073 11 00 07 80 	SET R1, $0780			; R1 points to char buffer
+0536   0075             	
+0537   0075             loop1:	
+0538   0075 41 00       	LD R0, @R1				; get first character
+0539   0076 0C 00       	OUT                     ; output character
+0540   0077 E1 00       	INC R1
+0541   0078 01 75       	BGT loop1				; get characters until you find an EOS
+0542   0079 00 03       	BRA Text_Check		    ; Back to Text_Check when you get an EOS
+0543   007A             	
+0544   007A             	; getchar  8 instructions 
+0545   007A             	
+0546   007A             ;-----------------------------------------Get_Hex---------------------------------------------
+0547   007A             	
+0548   007A             Get_Hex:
+0549   007A             
+0550   007A             	; Accepts a hexadecimal number up to FFFF from terminal input buffer
+0551   007A             	; converts it to an integer and puts it into register R0
+0552   007A             	; It can then be printed out as a decimal using Print_Num - for checking integrity
+0553   007A             	; R1 is the pointer in the text buffer - which starts at 0x0780
+0554   007A             	; R4 is used as a temporary store for the character in the accumulator R0
+0555   007A             	; R5 is used in the "Times 16" routine
+0556   007A             	; R7 is used to accumulate the powers of 16 when forming the integer in R0
+0557   007A             	
+0558   007A 11 00 07 80 	SET R1, $0780				; R1 is start of text buffer
+0559   007C 17 00 00 00 	SET R7, 0				; Clear R7
+0560   007E             
+0561   007E             nextchar:
+0562   007E             
+0563   007E 41 00       	LD R0, @R1				; get the first character
+0564   007F 34 00       	ST R4, R0				; temporary store
+0565   0080 E1 00       	INC R1
+0566   0081 41 00       	LD R0, @R1				; get the next character to see if it is numeric or terminator
+0567   0082             	
+0568   0082 0B 30       	SBI $30					; Is it bigger than 0x30?
+0569   0083 02 8F       	BLT quit
+0570   0084 0B 17       	SBI 23					; Is is bigger than ascii 'F'
+0571   0085 03 8F       	BGE quit
+0572   0086             	
+0573   0086 08 00 00 93 	CALL modify
+0574   0088             	
+0575   0088 A7 00       	ADD R7
+0576   0089 A0 00       	ADD R0					; 2X
+0577   008A A0 00       	ADD R0					; 4X
+0578   008B A0 00       	ADD R0					; 8X
+0579   008C A0 00       	ADD R0					; 16X
+0580   008D             	
+0581   008D 37 00       	ST  R7, R0				; R7 is the accumulating sum
+0582   008E             	
+0583   008E 00 7E       	BRA nextchar
+0584   008F             	
+0585   008F             quit:	
+0586   008F 08 00 00 93 	CALL modify
+0587   0091             	
+0588   0091 A7 00       	ADD R7					; Add in the final digit
+0589   0092 00 4D       	BRA Print_Num			; Print it out in decimal
+0590   0093             	
+0591   0093             modify:
+0592   0093             
+0593   0093             	; If R0 = 0-9 subtract 0x30 to form a number 0-9
+0594   0093             	; If R0 = A-F subtract 0x37 to form a number 10-15
 0595   0093             	
-0596   0093             modify:
-0597   0093             
-0598   0093             	; If R0 = 0-9 subtract 0x30 to form a number 0-9
-0599   0093             	; If R0 = A-F subtract 0x37 to form a number 10-15
-0600   0093             	
-0601   0093 24 00       	LD R0, R4				; Get R0 back from R4
-0602   0094 0B 40       	SBI  $40				; Is it bigger than 0x40?
-0603   0095 02 98       	BLT  decimal_num		; must be a decimal 0-9
-0604   0096 0A 09       	ADI  9                  ; Add 9 to turn R0 into 10 -15
-0605   0097 00 9A       	BRA endmodify
-0606   0098             	
-0607   0098             decimal_num: 
-0608   0098             
-0609   0098 24 00       	LD R0, R4				; Get R0 back from R4
-0610   0099 0B 30       	SBI $30				    ; convert to a decimal number
-0611   009A             	
-0612   009A             endmodify:
-0613   009A             
-0614   009A 09 00       	RET
-0615   009B             
+0596   0093 24 00       	LD R0, R4				; Get R0 back from R4
+0597   0094 0B 40       	SBI  $40				; Is it bigger than 0x40?
+0598   0095 02 98       	BLT  decimal_num		; must be a decimal 0-9
+0599   0096 0A 09       	ADI  9                  ; Add 9 to turn R0 into 10 -15
+0600   0097 00 9A       	BRA endmodify
+0601   0098             	
+0602   0098             decimal_num: 
+0603   0098             
+0604   0098 24 00       	LD R0, R4				; Get R0 back from R4
+0605   0099 0B 30       	SBI $30				    ; convert to a decimal number
+0606   009A             	
+0607   009A             endmodify:
+0608   009A             
+0609   009A 09 00       	RET
+0610   009B             
+0611   009B             
+0612   009B             ; Get_Hex   33 instructions
+0613   009B             	
+0614   009B             	
+0615   009B             ;------------------------------------Print_Hex------------------------------------
 0616   009B             
-0617   009B             ; Get_Hex   33 instructions
-0618   009B             	
-0619   009B             	
-0620   009B             ;------------------------------------Print_Hex------------------------------------
-0621   009B             
-0622   009B             ;  Prints out a 4 digit hexadecimal number to the terminal according to contents of R0
-0623   009B             ;  Leading zeroes are not suppressed
-0624   009B             ;  R1 = Heximation Value
-0625   009B             ;  R2 = digit count
-0626   009B             ;  R4 = temporary storage for accumulator (decimated value)
-0627   009B             ;  R6 = temporary store for output character
-0628   009B             
-0629   009B             ; This is based on the Print_Num routine with modifications to handle A-F characters
-0630   009B             
-0631   009B             Print_Hex:
-0632   009B             
-0633   009B 12 00 00 00 		SET R2,   0
-0634   009D             				
-0635   009D 11 00 10 00 		SET R1,   4096
-0636   009F 08 00 00 AC 		CALL   heximate
-0637   00A1             		
-0638   00A1 11 00 01 00 		SET R1,   256
-0639   00A3 08 00 00 AC 		CALL   heximate
-0640   00A5             		
-0641   00A5 11 00 00 10 		SET R1,   16
-0642   00A7 08 00 00 AC 		CALL   heximate
-0643   00A9             		
-0644   00A9 08 00 00 B9 		CALL printmod		; look at number and print correct character
-0645   00AB             		
-0646   00AB             		
-0647   00AB 09 00       retn:	RET		
-0648   00AC             		
-0649   00AC             heximate:
-0650   00AC             
-0651   00AC B1 00       		SUB R1				; Subtract the power of 16
-0652   00AD 02 B0       		BLT tempstore		; If it goes negative the decimation is finished
-0653   00AE E2 00       		INC R2				; Increment the decimation count
-0654   00AF 00 AC       		BRA heximate		; repeat until negative
-0655   00B0             		
-0656   00B0             tempstore:
-0657   00B0             
-0658   00B0 34 00       		ST R4, R0			; temporarily store the remainder
-0659   00B1 22 00       		LD R0, R2			; get the decimation count from R2
-0660   00B2 08 00 00 B9 		CALL printmod       ; look at number and print correct character
-0661   00B4             		
-0662   00B4 24 00       		LD R0, R4			; get remainder back
-0663   00B5 A1 00       		ADD R1				; adds the R1 value to restore sum
-0664   00B6 12 00 00 00 		SET R2, 0			; Clear the count
-0665   00B8 09 00       		RET
-0666   00B9             		
-0667   00B9             printmod:					; look at number and print correct character
-0668   00B9 0A 30       		ADI $30				; ADD 0x30 to make it a number
-0669   00BA 36 00       		ST R6, R0			; Temporary store to R6		
-0670   00BB 0B 3A       		SBI $3A				; is it bigger than ascii '9'
-0671   00BC 02 C0       		BLT printdec		; output as decimal digit
-0672   00BD 0A 41       		ADI $41				; otherwise make it a hex digit
-0673   00BE 0C 00       		OUT	
-0674   00BF 00 C2       		BRA restore
-0675   00C0             		
-0676   00C0             printdec:		
-0677   00C0 26 00       		LD R0, R6
-0678   00C1 0C 00       		OUT
-0679   00C2             		
-0680   00C2             restore:
-0681   00C2 09 00       		RET
-0682   00C3             		
-0683   00C3             		
-0684   00C3             ;		Print_Hex  40 instructions	
-0685   00C3             	
-0686   00C3             ; ---------------------------HEXDUMP------------------------------------------ 
-0687   00C3             
-0688   00C3             ; Dump a page of memory to the screen
-0689   00C3             ; Address on LHS, followed by 16 words across the screen need about 90 characters wide
-0690   00C3             ; Print out 256 words over 16 lines
-0691   00C3             
-0692   00C3             ; R0 = value to be printed
-0693   00C3             ; R11 = pointer to memory starting at 0x0000
-0694   00C3             
-0695   00C3 19 00 01 00 	SET R9,  $100		; 256 words to dump
-0696   00C5 1A 00 00 0A 	SET R10, $0A		; 16 words to a line
-0697   00C7 1B 00 00 00 	SET R11, 0			; Begin dump from address 0
-0698   00C9             	
-0699   00C9             
-0700   00C9             nextaddress:	
-0701   00C9             	
-0702   00C9             	
-0703   00C9 2B 00       	LD R0, R11			; Get the address
-0704   00CA 08 00 00 9B 	CALL Print_Hex		; print the address
-0705   00CC 10 00 00 3E 	SET R0, $3E			; > Cursor
-0706   00CE 0C 00       	OUT
-0707   00CF 0B 1E       	SBI $1E				; 3E - $1E  = $20  so print two spaces
-0708   00D0 0C 00       	OUT
-0709   00D1 0C 00       	OUT
-0710   00D2             	
-0711   00D2             nextword:
-0712   00D2             
-0713   00D2 4B 00       	LD R0, @R11			; get the next word from memory
-0714   00D3 08 00 00 9B 	CALL Print_Hex		; print the mem-word
-0715   00D5 10 00 00 20 	SET R0, $20			; a space
-0716   00D7 0C 00       	OUT
-0717   00D8             	
-0718   00D8 EB 00       	INC R11				; increment memory pointer
-0719   00D9 DA 00       	DEC R10				; decrement word counter
-0720   00DA D9 00       	DEC R9				; decrement page address counter
-0721   00DB 2A 00       	LD R0, R10			; get word counter
-0722   00DC 01 D2       	BGT nextword
-0723   00DD             	
-0724   00DD 29 00       	LD R0, R9  			; get page address counter
-0725   00DE             	
-0726   00DE 04 E4       	BLE nextline
-0727   00DF 08 00 00 EF 	CALL crlf
-0728   00E1             	
-0729   00E1 1A 00 00 16 	SET R10, $16		; reset word counter to 16
-0730   00E3             	
-0731   00E3 00 C9       	BRA nextaddress		; get address for next line
-0732   00E4             
-0733   00E4             nextline:
-0734   00E4             	
-0735   00E4 08 00 00 EF 	CALL crlf			; two blank lines
-0736   00E6             	
-0737   00E6 00 47       	BRA NEXT
+0617   009B             ;  Prints out a 4 digit hexadecimal number to the terminal according to contents of R0
+0618   009B             ;  Leading zeroes are not suppressed
+0619   009B             ;  R1 = Heximation Value
+0620   009B             ;  R2 = digit count
+0621   009B             ;  R4 = temporary storage for accumulator (decimated value)
+0622   009B             ;  R6 = temporary store for output character
+0623   009B             
+0624   009B             ; This is based on the Print_Num routine with modifications to handle A-F characters
+0625   009B             
+0626   009B             Print_Hex:
+0627   009B             
+0628   009B 12 00 00 00 		SET R2,   0
+0629   009D             				
+0630   009D 11 00 10 00 		SET R1,   4096
+0631   009F 08 00 00 AC 		CALL   heximate
+0632   00A1             		
+0633   00A1 11 00 01 00 		SET R1,   256
+0634   00A3 08 00 00 AC 		CALL   heximate
+0635   00A5             		
+0636   00A5 11 00 00 10 		SET R1,   16
+0637   00A7 08 00 00 AC 		CALL   heximate
+0638   00A9             		
+0639   00A9 08 00 00 B9 		CALL printmod		; look at number and print correct character
+0640   00AB             		
+0641   00AB             		
+0642   00AB 09 00       retn:	RET		
+0643   00AC             		
+0644   00AC             heximate:
+0645   00AC             
+0646   00AC B1 00       		SUB R1				; Subtract the power of 16
+0647   00AD 02 B0       		BLT tempstore		; If it goes negative the decimation is finished
+0648   00AE E2 00       		INC R2				; Increment the decimation count
+0649   00AF 00 AC       		BRA heximate		; repeat until negative
+0650   00B0             		
+0651   00B0             tempstore:
+0652   00B0             
+0653   00B0 34 00       		ST R4, R0			; temporarily store the remainder
+0654   00B1 22 00       		LD R0, R2			; get the decimation count from R2
+0655   00B2 08 00 00 B9 		CALL printmod       ; look at number and print correct character
+0656   00B4             		
+0657   00B4 24 00       		LD R0, R4			; get remainder back
+0658   00B5 A1 00       		ADD R1				; adds the R1 value to restore sum
+0659   00B6 12 00 00 00 		SET R2, 0			; Clear the count
+0660   00B8 09 00       		RET
+0661   00B9             		
+0662   00B9             printmod:					; look at number and print correct character
+0663   00B9 0A 30       		ADI $30				; ADD 0x30 to make it a number
+0664   00BA 36 00       		ST R6, R0			; Temporary store to R6		
+0665   00BB 0B 3A       		SBI $3A				; is it bigger than ascii '9'
+0666   00BC 02 C0       		BLT printdec		; output as decimal digit
+0667   00BD 0A 41       		ADI $41				; otherwise make it a hex digit
+0668   00BE 0C 00       		OUT	
+0669   00BF 00 C2       		BRA restore
+0670   00C0             		
+0671   00C0             printdec:		
+0672   00C0 26 00       		LD R0, R6
+0673   00C1 0C 00       		OUT
+0674   00C2             		
+0675   00C2             restore:
+0676   00C2 09 00       		RET
+0677   00C3             		
+0678   00C3             		
+0679   00C3             ;		Print_Hex  40 instructions	
+0680   00C3             	
+0681   00C3             ; ---------------------------HEXDUMP------------------------------------------ 
+0682   00C3             
+0683   00C3             ; Dump a page of memory to the screen
+0684   00C3             ; Address on LHS, followed by 16 words across the screen need about 90 characters wide
+0685   00C3             ; Print out 256 words over 16 lines
+0686   00C3             
+0687   00C3             ; R0 = value to be printed
+0688   00C3             ; R11 = pointer to memory starting at 0x0000
+0689   00C3             
+0690   00C3 19 00 01 00 	SET R9,  $100		; 256 words to dump
+0691   00C5 1A 00 00 0A 	SET R10, $0A		; 16 words to a line
+0692   00C7 1B 00 00 00 	SET R11, 0			; Begin dump from address 0
+0693   00C9             	
+0694   00C9             
+0695   00C9             nextaddress:	
+0696   00C9             	
+0697   00C9             	
+0698   00C9 2B 00       	LD R0, R11			; Get the address
+0699   00CA 08 00 00 9B 	CALL Print_Hex		; print the address
+0700   00CC 10 00 00 3E 	SET R0, $3E			; > Cursor
+0701   00CE 0C 00       	OUT
+0702   00CF 0B 1E       	SBI $1E				; 3E - $1E  = $20  so print two spaces
+0703   00D0 0C 00       	OUT
+0704   00D1 0C 00       	OUT
+0705   00D2             	
+0706   00D2             nextword:
+0707   00D2             
+0708   00D2 4B 00       	LD R0, @R11			; get the next word from memory
+0709   00D3 08 00 00 9B 	CALL Print_Hex		; print the mem-word
+0710   00D5 10 00 00 20 	SET R0, $20			; a space
+0711   00D7 0C 00       	OUT
+0712   00D8             	
+0713   00D8 EB 00       	INC R11				; increment memory pointer
+0714   00D9 DA 00       	DEC R10				; decrement word counter
+0715   00DA D9 00       	DEC R9				; decrement page address counter
+0716   00DB 2A 00       	LD R0, R10			; get word counter
+0717   00DC 01 D2       	BGT nextword
+0718   00DD             	
+0719   00DD 29 00       	LD R0, R9  			; get page address counter
+0720   00DE             	
+0721   00DE 04 E4       	BLE nextline
+0722   00DF 08 00 00 EF 	CALL crlf
+0723   00E1             	
+0724   00E1 1A 00 00 16 	SET R10, $16		; reset word counter to 16
+0725   00E3             	
+0726   00E3 00 C9       	BRA nextaddress		; get address for next line
+0727   00E4             
+0728   00E4             nextline:
+0729   00E4             	
+0730   00E4 08 00 00 EF 	CALL crlf			; two blank lines
+0731   00E6             	
+0732   00E6 00 47       	BRA NEXT
+0733   00E7             
+0734   00E7             
+0735   00E7             ; Hex_Dump 34 instructions
+0736   00E7             
+0737   00E7             ;--------------------------------------------------------------------------------------------
 0738   00E7             
-0739   00E7             
-0740   00E7             ; Hex_Dump 34 instructions
-0741   00E7             
-0742   00E7             ;--------------------------------------------------------------------------------------------
-0743   00E7             
-0744   00E7             ;
-0745   00E7             ; Send a string to the serial line, HL contains the pointer to the string:
-0746   00E7             ;
-0747   00E7             puts:
-0748   00E7 08 00 00 EC 	CALL putc
-0749   00E9 E1 00       	INC R1
-0750   00EA 01 E7       	BGT puts
-0751   00EB 09 00       	RET
-0752   00EC             	
-0753   00EC             ;
-0754   00EC             ; Send a single character to the serial line (a contains the character):
-0755   00EC             ;
-0756   00EC             putc:
-0757   00EC 41 00       	LD R0, @R1;
-0758   00ED 0C 00       	OUT
-0759   00EE 09 00       	RET
-0760   00EF             	
-0761   00EF             crlf:					; Output a CR/LF pair
-0762   00EF             
-0763   00EF 10 00 02 53 	SET R0, cr			; Load a cr
-0764   00F1 0C 00       	OUT
-0765   00F2 0B 03       	SBI 3				; Subtract 3 to make a lf
-0766   00F3 0C 00       	OUT
-0767   00F4 09 00       	RET	
-0768   00F5             
-0769   00F5             ; Send a CR/LF pair:
-0770   00F5             ;
-0771   00F5             ; 	crlf:
-0772   00F5             ;	SET R1, cr
-0773   00F5             ;	call    putc
-0774   00F5             ;	SET R1, lf
-0775   00F5             ;	call    putc
-0776   00F5             ;	ret
-0777   00F5             
-0778   00F5             
-0779   00F5             	
-0780   00F5             
-0781   0100             .org $0100					; Start of the jump table	
-0782   0100             	
-0783   0100             ;------------------------------------------------------Jump_Table------------------------------------------
-0784   0100             
-0785   0100 F0 00               .WORD   $00F0     ; SPACE
-0786   0101 F1 00               .WORD   $00F1     ; STORE !
-0787   0102 F2 00               .WORD   $00F2     ; DUP   "
-0788   0103 F3 00               .WORD   $00F3     ; LIT   #
-0789   0104                     
-0790   0104 F4 00               .WORD   $00F4     ; SWAP  $
-0791   0105 F5 00               .WORD   $00F5     ; OVER  %
-0792   0106 04 02               .WORD   _and      ; AND   &
-0793   0107 00 0F               .WORD   $0F00     ; quote ' 		
-0794   0108                     
-0795   0108 00 0F               .WORD   $0F00     ; BEGIN (
-0796   0109 00 0F               .WORD   $0F00     ; END   )
-0797   010A 00 0F               .WORD   $0F00     ; MUL   *
-0798   010B 00 02               .WORD   _add      ; ADD   +     
-0799   010C                     
-0800   010C 00 0F               .WORD   $0F00     ; COMMA ,
-0801   010D 02 02               .WORD   _sub      ; SUB   -     
-0802   010E 4D 00               .WORD   Print_Num ; DOT   .     Print_Num  
-0803   010F FF 00               .WORD   $00FF     ; DIV   /
-0804   0110             		
-0805   0110             		;ascii digits 0 to 9 are processed here
-0806   0110             		
-0807   0110 2B 00       		.WORD   number    ; process numeral '0'
-0808   0111 2B 00       		.WORD   number    ; process numeral '1'
-0809   0112 2B 00       		.WORD   number    ; process numeral '2'
-0810   0113 2B 00       		.WORD   number    ; process numeral '3'
-0811   0114 2B 00       		.WORD   number    ; process numeral '4'
-0812   0115 2B 00       		.WORD   number    ; process numeral '5'
-0813   0116 2B 00       		.WORD   number    ; process numeral '6'
-0814   0117 2B 00       		.WORD   number    ; process numeral '7'
-0815   0118 2B 00       		.WORD   number    ; process numeral '8'
-0816   0119 2B 00       		.WORD   number    ; process numeral '9'
-0817   011A             		       
-0818   011A              
-0819   011A                
-0820   011A             ;-----------------------------------------Jump Table Contd-----------------------------------------
-0821   011A                     
-0822   011A 00 0F               .WORD   $0F00     ; CALL  :
-0823   011B 00 0F               .WORD   $0F00     ; RET   ;
-0824   011C 00 0F               .WORD   $0F00     ; LESS  <
-0825   011D 00 0F               .WORD   $0F00     ; EQ    =
-0826   011E             		
-0827   011E 00 0F               .WORD   $0F00     ; MORE  >
-0828   011F 00 0F               .WORD   $0F00     ; QUERY ?
-0829   0120 A0 00               .WORD   $00A0     ; FETCH @
-0830   0121 20 04       		.WORD   $0420     ; A
-0831   0122                     
-0832   0122 40 04               .WORD   $0440     ; B
-0833   0123 60 04               .WORD   $0460     ; C
-0834   0124 80 04               .WORD   $0480     ; D
-0835   0125 A0 04               .WORD   $04A0     ; E
-0836   0126             
-0837   0126 C0 04               .WORD   $04C0     ; F
-0838   0127 E0 04               .WORD   $04E0     ; G
-0839   0128 00 05               .WORD   $0500     ; H
-0840   0129 20 05               .WORD   $0520     ; I
-0841   012A                     
-0842   012A 40 05               .WORD   $0540     ; J
-0843   012B 60 05               .WORD   $0560     ; K
-0844   012C 80 05               .WORD   $0580     ; L
-0845   012D A0 05               .WORD   $05A0     ; M
-0846   012E             
-0847   012E C0 05               .WORD   $05C0     ; N
-0848   012F E0 05               .WORD   $05E0     ; O
-0849   0130 00 06               .WORD   $0600     ; P
-0850   0131 20 06               .WORD   $0620     ; Q
-0851   0132             
-0852   0132 60 06       		.WORD   $0660     ; R
-0853   0133 80 06               .WORD   $0680     ; S
-0854   0134 A0 06               .WORD   $06A0     ; T
-0855   0135 C0 06               .WORD   $06C0     ; U
-0856   0136             
-0857   0136 E0 06               .WORD   $06E0     ; V
-0858   0137 00 07               .WORD   $0700     ; W
-0859   0138 20 07               .WORD   $0720     ; X
-0860   0139 40 07               .WORD   $0740     ; Y
-0861   013A             		
-0862   013A 60 07       		.WORD   $0760     ; Z
-0863   013B             			
-0864   013B 00 0F               .WORD   $0F00     ; OPEN  [
-0865   013C             		
-0866   013C 00 0F               .WORD   $0F00     ; BACK  
-0867   013D 00 0F               .WORD   $0F00     ; CLOSE ]        
-0868   013E 08 02               .WORD   _xor      ; XOR   ^      
-0869   013F 00 0F               .WORD   $0F00     ; UNDER _
-0870   0140             		
-0871   0140 00 0F               .WORD   $0F00     ; TICK  
-0872   0141 00 0F               .WORD   $0F00     ; a
-0873   0142                     
-0874   0142 A8 00               .WORD   $00A8     ; b
-0875   0143 00 0F               .WORD   $0F00     ; c
-0876   0144 00 0F               .WORD   $0F00     ; d
-0877   0145 00 0F               .WORD   $0F00     ; e
-0878   0146             
-0879   0146 00 0F               .WORD   $0F00     ; f
-0880   0147 00 0F               .WORD   $0F00     ; g
-0881   0148 00 0F               .WORD   $0F00     ; h
-0882   0149 00 0F               .WORD   $0F00     ; i
-0883   014A                     
-0884   014A B0 00               .WORD   $00B0     ; j
-0885   014B 00 0F               .WORD   $0F00     ; k
-0886   014C 00 0F               .WORD   $0F00     ; l
-0887   014D 00 0F               .WORD   $0F00     ; m
-0888   014E             
-0889   014E 00 0F               .WORD   $0F00     ; n
-0890   014F 00 0F               .WORD   $0F00     ; o
-0891   0150 00 0F               .WORD   $0F00     ; p
-0892   0151 00 0F               .WORD   $0F00     ; q
-0893   0152             
-0894   0152 B8 00               .WORD   $00B8     ; r
-0895   0153 00 0F               .WORD   $0F00     ; s
-0896   0154 00 0F               .WORD   $0F00     ; t
-0897   0155 00 0F               .WORD   $0F00     ; u
-0898   0156             
-0899   0156 00 0F               .WORD   $0F00     ; v
-0900   0157 00 0F               .WORD   $0F00     ; w
-0901   0158 00 0F               .WORD   $0F00     ; x
-0902   0159 00 0F               .WORD   $0F00     ; y
-0903   015A                 
-0904   015A 00 0F               .WORD   $0F00     ; z
-0905   015B 00 0F               .WORD   $0F00     ; BRACEL {
-0906   015C 06 02               .WORD   _or       ; OR     |   
-0907   015D 00 0F               .WORD   $0F00     ; BRACER {
-0908   015E                     
-0909   015E 0A 02               .WORD   _inv      ; INV    ~   
-0910   015F 00 0F               .WORD   $0F00     ; NOP
-0911   0160             		
-0912   0160             		
-0913   0160             		; Jump_Table  96 words
-0914   0160                                   
-0915   0160             ;--------------------------------------End of Jump Table-------------------------------------
-0916   0160             
-0917   0160             ;-----------------------------------------Hex_Loader-----------------------------------------
-0918   0160             
-0919   0160             ; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
-0920   0160             ; Constant definitions
-0921   0160             ;
-0922   0160             loader_start	.equ	$0160		; hexloader starts here
-0923   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
-0924   0160             eos				.equ	$0000		; end of string
-0925   0160             
-0926   0160             .org	loader_start
-0927   0160             
-0928   0160             starting_addr:
-0929   0160             ; Print a welcome message
-0930   0160 11 00 02 10 	SET R1, hello_msg
-0931   0162 08 00 00 E7 	CALL puts
-0932   0164 08 00 00 EF 	CALL crlf
-0933   0166 10 00 00 3E 	SET R0, 62				; > cursor
-0934   0168 0C 00       	OUT						; Print cursor
-0935   0169             	
-0936   0169             get_colon:	
-0937   0169             	; zero checksum
-0938   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
-0939   016B             	; get first character 
-0940   016B 0D 00       	IN						; getchar
-0941   016C 11 00 07 80 	SET R1, $780
-0942   016E 41 00       	LD R0, @R1				; get character		
-0943   016F 0B 3A       	SBI 58					; ':' char
-SIMPL_Suite16_2020_5.asm line 0944: Unused data in MS byte of argument. (1)
-0944   0170 05 69       	BNE get_colon
-0945   0171             
-0946   0171             	; READ LENGTH
-0947   0171 08 00 01 DD 	call getbyte
-0948   0173             	; value is in R7
-0949   0173 27 00       	LD R0, R7
-0950   0174 3A 00       	ST R10, R0				; store in R[10]
-0951   0175             	
-0952   0175             	; READ ADDRESS
-0953   0175 08 00 01 EE 	call getword
-0954   0177             	; value is in R7
-0955   0177 27 00       	LD R0, R7
-0956   0178 3B 00       	ST R11, R0				; store in R[11]
-0957   0179             	
-0958   0179             	; READ RECORD TYPE
-0959   0179 08 00 01 DD 	call getbyte
-0960   017B             	; value is in R7
-0961   017B 27 00       	LD R0, R7
-0962   017C 3D 00       	ST R13, R0;				; store in R[13]
-0963   017D             	
-0964   017D             	; R[10] = length in bytes
-0965   017D             	; R[11] = address 
-0966   017D             	; R[13] = record type 
-0967   017D             	
-0968   017D 11 00 00 01 	SET R1, 1				; record type 01
-0969   017F 37 00       	ST R7, R0				; store for later
-0970   0180 B1 00       	SUB R1					; check if type is 01
-SIMPL_Suite16_2020_5.asm line 0971: Unused data in MS byte of argument. (1)
-0971   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
-0972   0182 27 00       	LD R0, R7				; get value back
-SIMPL_Suite16_2020_5.asm line 0973: Unused data in MS byte of argument. (1)
-0973   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
-0974   0184             
-0975   0184             read_data:	
-0976   0184             	; this is a data byte
-0977   0184             msb_part:
-0978   0184 08 00 01 DD 	call getbyte
-0979   0186             	; value is in R7
-0980   0186 27 00       	LD R0, R7				; get byte in R0
-0981   0187 A0 00       	ADD R0					; shift
-0982   0188 A0 00       	ADD R0
-0983   0189 A0 00       	ADD R0
-0984   018A A0 00       	ADD R0
-0985   018B A0 00       	ADD R0
-0986   018C A0 00       	ADD R0
-0987   018D A0 00       	ADD R0
-0988   018E A0 00       	ADD R0
-0989   018F 5B 00       	ST @R11, R0				; store at memory address
-0990   0190             	
-0991   0190             lsb_part:
-0992   0190 08 00 01 DD 	call getbyte
-0993   0192             	; value is in R7
-0994   0192 4B 00       	LD R0, @R11				; get what is in memory
-0995   0193 97 00       	OR R7					; OR lsb into it
-0996   0194 5B 00       	ST @R11, R0				; store at memory address
-0997   0195             	
-0998   0195 EB 00       	INC R11					; next memory address
-0999   0196             	
-1000   0196             	;decrement 2x
-1001   0196 DA 00       	DEC R10					; decrement 
-1002   0197 DA 00       	DEC R10					; decrement 
-1003   0198             	
-1004   0198 2A 00       	LD R0, R10				; get length
-SIMPL_Suite16_2020_5.asm line 1005: Unused data in MS byte of argument. (1)
-1005   0199 01 84       	BGT read_data			; 
-1006   019A             	
-1007   019A             	; GET LAST BYTE
-1008   019A 08 00 01 DD 	call getbyte			; get checksum byte
-1009   019C             	
-1010   019C             	; CHECK CHECKSUM
-1011   019C 2E 00       	LD R0, R14				; get checksum byte
-1012   019D 11 00 00 FF 	SET R1, $00FF
-1013   019F 81 00       	AND R1
+0739   00E7             ;
+0740   00E7             ; Send a string to the serial line, HL contains the pointer to the string:
+0741   00E7             ;
+0742   00E7             puts:
+0743   00E7 08 00 00 EC 	CALL putc
+0744   00E9 E1 00       	INC R1
+0745   00EA 01 E7       	BGT puts
+0746   00EB 09 00       	RET
+0747   00EC             	
+0748   00EC             ;
+0749   00EC             ; Send a single character to the serial line (a contains the character):
+0750   00EC             ;
+0751   00EC             putc:
+0752   00EC 41 00       	LD R0, @R1;
+0753   00ED 0C 00       	OUT
+0754   00EE 09 00       	RET
+0755   00EF             	
+0756   00EF             crlf:					; Output a CR/LF pair
+0757   00EF             
+0758   00EF 10 00 02 53 	SET R0, cr			; Load a cr
+0759   00F1 0C 00       	OUT
+0760   00F2 0B 03       	SBI 3				; Subtract 3 to make a lf
+0761   00F3 0C 00       	OUT
+0762   00F4 09 00       	RET	
+0763   00F5             
+0764   00F5             ; Send a CR/LF pair:
+0765   00F5             ;
+0766   00F5             ; 	crlf:
+0767   00F5             ;	SET R1, cr
+0768   00F5             ;	call    putc
+0769   00F5             ;	SET R1, lf
+0770   00F5             ;	call    putc
+0771   00F5             ;	ret
+0772   00F5             
+0773   00F5             
+0774   00F5             	
+0775   00F5             
+0776   0100             .org $0100					; Start of the jump table	
+0777   0100             	
+0778   0100             ;------------------------------------------------------Jump_Table------------------------------------------
+0779   0100             
+0780   0100 F0 00               .WORD   $00F0     ; SPACE
+0781   0101 F1 00               .WORD   $00F1     ; STORE !
+0782   0102 F2 00               .WORD   $00F2     ; DUP   "
+0783   0103 F3 00               .WORD   $00F3     ; LIT   #
+0784   0104                     
+0785   0104 F4 00               .WORD   $00F4     ; SWAP  $
+0786   0105 F5 00               .WORD   $00F5     ; OVER  %
+0787   0106 04 02               .WORD   _and      ; AND   &
+0788   0107 00 0F               .WORD   $0F00     ; quote ' 		
+0789   0108                     
+0790   0108 00 0F               .WORD   $0F00     ; BEGIN (
+0791   0109 00 0F               .WORD   $0F00     ; END   )
+0792   010A 00 0F               .WORD   $0F00     ; MUL   *
+0793   010B 00 02               .WORD   _add      ; ADD   +     
+0794   010C                     
+0795   010C 00 0F               .WORD   $0F00     ; COMMA ,
+0796   010D 02 02               .WORD   _sub      ; SUB   -     
+0797   010E 4D 00               .WORD   Print_Num ; DOT   .     Print_Num  
+0798   010F FF 00               .WORD   $00FF     ; DIV   /
+0799   0110             		
+0800   0110             		;ascii digits 0 to 9 are processed here
+0801   0110             		
+0802   0110 2B 00       		.WORD   number    ; process numeral '0'
+0803   0111 2B 00       		.WORD   number    ; process numeral '1'
+0804   0112 2B 00       		.WORD   number    ; process numeral '2'
+0805   0113 2B 00       		.WORD   number    ; process numeral '3'
+0806   0114 2B 00       		.WORD   number    ; process numeral '4'
+0807   0115 2B 00       		.WORD   number    ; process numeral '5'
+0808   0116 2B 00       		.WORD   number    ; process numeral '6'
+0809   0117 2B 00       		.WORD   number    ; process numeral '7'
+0810   0118 2B 00       		.WORD   number    ; process numeral '8'
+0811   0119 2B 00       		.WORD   number    ; process numeral '9'
+0812   011A             		       
+0813   011A              
+0814   011A                
+0815   011A             ;-----------------------------------------Jump Table Contd-----------------------------------------
+0816   011A                     
+0817   011A 00 0F               .WORD   $0F00     ; CALL  :
+0818   011B 00 0F               .WORD   $0F00     ; RET   ;
+0819   011C 00 0F               .WORD   $0F00     ; LESS  <
+0820   011D 00 0F               .WORD   $0F00     ; EQ    =
+0821   011E             		
+0822   011E 00 0F               .WORD   $0F00     ; MORE  >
+0823   011F 00 0F               .WORD   $0F00     ; QUERY ?
+0824   0120 A0 00               .WORD   $00A0     ; FETCH @
+0825   0121 20 04       		.WORD   $0420     ; A
+0826   0122                     
+0827   0122 40 04               .WORD   $0440     ; B
+0828   0123 60 04               .WORD   $0460     ; C
+0829   0124 80 04               .WORD   $0480     ; D
+0830   0125 A0 04               .WORD   $04A0     ; E
+0831   0126             
+0832   0126 C0 04               .WORD   $04C0     ; F
+0833   0127 E0 04               .WORD   $04E0     ; G
+0834   0128 00 05               .WORD   $0500     ; H
+0835   0129 20 05               .WORD   $0520     ; I
+0836   012A                     
+0837   012A 40 05               .WORD   $0540     ; J
+0838   012B 60 05               .WORD   $0560     ; K
+0839   012C 80 05               .WORD   $0580     ; L
+0840   012D A0 05               .WORD   $05A0     ; M
+0841   012E             
+0842   012E C0 05               .WORD   $05C0     ; N
+0843   012F E0 05               .WORD   $05E0     ; O
+0844   0130 00 06               .WORD   $0600     ; P
+0845   0131 20 06               .WORD   $0620     ; Q
+0846   0132             
+0847   0132 60 06       		.WORD   $0660     ; R
+0848   0133 80 06               .WORD   $0680     ; S
+0849   0134 A0 06               .WORD   $06A0     ; T
+0850   0135 C0 06               .WORD   $06C0     ; U
+0851   0136             
+0852   0136 E0 06               .WORD   $06E0     ; V
+0853   0137 00 07               .WORD   $0700     ; W
+0854   0138 20 07               .WORD   $0720     ; X
+0855   0139 40 07               .WORD   $0740     ; Y
+0856   013A             		
+0857   013A 60 07       		.WORD   $0760     ; Z
+0858   013B             			
+0859   013B 00 0F               .WORD   $0F00     ; OPEN  [
+0860   013C             		
+0861   013C 00 0F               .WORD   $0F00     ; BACK  
+0862   013D 00 0F               .WORD   $0F00     ; CLOSE ]        
+0863   013E 08 02               .WORD   _xor      ; XOR   ^      
+0864   013F 00 0F               .WORD   $0F00     ; UNDER _
+0865   0140             		
+0866   0140 00 0F               .WORD   $0F00     ; TICK  
+0867   0141 00 0F               .WORD   $0F00     ; a
+0868   0142                     
+0869   0142 A8 00               .WORD   $00A8     ; b
+0870   0143 00 0F               .WORD   $0F00     ; c
+0871   0144 00 0F               .WORD   $0F00     ; d
+0872   0145 00 0F               .WORD   $0F00     ; e
+0873   0146             
+0874   0146 00 0F               .WORD   $0F00     ; f
+0875   0147 00 0F               .WORD   $0F00     ; g
+0876   0148 00 0F               .WORD   $0F00     ; h
+0877   0149 00 0F               .WORD   $0F00     ; i
+0878   014A                     
+0879   014A B0 00               .WORD   $00B0     ; j
+0880   014B 00 0F               .WORD   $0F00     ; k
+0881   014C 00 0F               .WORD   $0F00     ; l
+0882   014D 00 0F               .WORD   $0F00     ; m
+0883   014E             
+0884   014E 00 0F               .WORD   $0F00     ; n
+0885   014F 00 0F               .WORD   $0F00     ; o
+0886   0150 00 0F               .WORD   $0F00     ; p
+0887   0151 00 0F               .WORD   $0F00     ; q
+0888   0152             
+0889   0152 B8 00               .WORD   $00B8     ; r
+0890   0153 00 0F               .WORD   $0F00     ; s
+0891   0154 00 0F               .WORD   $0F00     ; t
+0892   0155 00 0F               .WORD   $0F00     ; u
+0893   0156             
+0894   0156 00 0F               .WORD   $0F00     ; v
+0895   0157 00 0F               .WORD   $0F00     ; w
+0896   0158 00 0F               .WORD   $0F00     ; x
+0897   0159 00 0F               .WORD   $0F00     ; y
+0898   015A                 
+0899   015A 00 0F               .WORD   $0F00     ; z
+0900   015B 00 0F               .WORD   $0F00     ; BRACEL {
+0901   015C 06 02               .WORD   _or       ; OR     |   
+0902   015D 00 0F               .WORD   $0F00     ; BRACER {
+0903   015E                     
+0904   015E 0A 02               .WORD   _inv      ; INV    ~   
+0905   015F 00 0F               .WORD   $0F00     ; NOP
+0906   0160             		
+0907   0160             		
+0908   0160             		; Jump_Table  96 words
+0909   0160                                   
+0910   0160             ;--------------------------------------End of Jump Table-------------------------------------
+0911   0160             
+0912   0160             ;-----------------------------------------Hex_Loader-----------------------------------------
+0913   0160             
+0914   0160             ; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
+0915   0160             ; Constant definitions
+0916   0160             ;
+0917   0160             loader_start	.equ	$0160		; hexloader starts here
+0918   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
+0919   0160             eos				.equ	$0000		; end of string
+0920   0160             
+0921   0160             .org	loader_start
+0922   0160             
+0923   0160             starting_addr:
+0924   0160             ; Print a welcome message
+0925   0160 11 00 02 10 	SET R1, hello_msg
+0926   0162 08 00 00 E7 	CALL puts
+0927   0164 08 00 00 EF 	CALL crlf
+0928   0166 10 00 00 3E 	SET R0, 62				; > cursor
+0929   0168 0C 00       	OUT						; Print cursor
+0930   0169             	
+0931   0169             get_colon:	
+0932   0169             	; zero checksum
+0933   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
+0934   016B             	; get first character 
+0935   016B 0D 00       	IN						; getchar
+0936   016C 11 00 07 80 	SET R1, $780
+0937   016E 41 00       	LD R0, @R1				; get character		
+0938   016F 0B 3A       	SBI 58					; ':' char
+SIMPL_Suite16_2020_5.asm line 0939: Unused data in MS byte of argument. (1)
+0939   0170 05 69       	BNE get_colon
+0940   0171             
+0941   0171             	; READ LENGTH
+0942   0171 08 00 01 DD 	call getbyte
+0943   0173             	; value is in R7
+0944   0173 27 00       	LD R0, R7
+0945   0174 3A 00       	ST R10, R0				; store in R[10]
+0946   0175             	
+0947   0175             	; READ ADDRESS
+0948   0175 08 00 01 EE 	call getword
+0949   0177             	; value is in R7
+0950   0177 27 00       	LD R0, R7
+0951   0178 3B 00       	ST R11, R0				; store in R[11]
+0952   0179             	
+0953   0179             	; READ RECORD TYPE
+0954   0179 08 00 01 DD 	call getbyte
+0955   017B             	; value is in R7
+0956   017B 27 00       	LD R0, R7
+0957   017C 3D 00       	ST R13, R0;				; store in R[13]
+0958   017D             	
+0959   017D             	; R[10] = length in bytes
+0960   017D             	; R[11] = address 
+0961   017D             	; R[13] = record type 
+0962   017D             	
+0963   017D 11 00 00 01 	SET R1, 1				; record type 01
+0964   017F 37 00       	ST R7, R0				; store for later
+0965   0180 B1 00       	SUB R1					; check if type is 01
+SIMPL_Suite16_2020_5.asm line 0966: Unused data in MS byte of argument. (1)
+0966   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
+0967   0182 27 00       	LD R0, R7				; get value back
+SIMPL_Suite16_2020_5.asm line 0968: Unused data in MS byte of argument. (1)
+0968   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
+0969   0184             
+0970   0184             read_data:	
+0971   0184             	; this is a data byte
+0972   0184             msb_part:
+0973   0184 08 00 01 DD 	call getbyte
+0974   0186             	; value is in R7
+0975   0186 27 00       	LD R0, R7				; get byte in R0
+0976   0187 A0 00       	ADD R0					; shift
+0977   0188 A0 00       	ADD R0
+0978   0189 A0 00       	ADD R0
+0979   018A A0 00       	ADD R0
+0980   018B A0 00       	ADD R0
+0981   018C A0 00       	ADD R0
+0982   018D A0 00       	ADD R0
+0983   018E A0 00       	ADD R0
+0984   018F 5B 00       	ST @R11, R0				; store at memory address
+0985   0190             	
+0986   0190             lsb_part:
+0987   0190 08 00 01 DD 	call getbyte
+0988   0192             	; value is in R7
+0989   0192 4B 00       	LD R0, @R11				; get what is in memory
+0990   0193 97 00       	OR R7					; OR lsb into it
+0991   0194 5B 00       	ST @R11, R0				; store at memory address
+0992   0195             	
+0993   0195 EB 00       	INC R11					; next memory address
+0994   0196             	
+0995   0196             	;decrement 2x
+0996   0196 DA 00       	DEC R10					; decrement 
+0997   0197 DA 00       	DEC R10					; decrement 
+0998   0198             	
+0999   0198 2A 00       	LD R0, R10				; get length
+SIMPL_Suite16_2020_5.asm line 1000: Unused data in MS byte of argument. (1)
+1000   0199 01 84       	BGT read_data			; 
+1001   019A             	
+1002   019A             	; GET LAST BYTE
+1003   019A 08 00 01 DD 	call getbyte			; get checksum byte
+1004   019C             	
+1005   019C             	; CHECK CHECKSUM
+1006   019C 2E 00       	LD R0, R14				; get checksum byte
+1007   019D 11 00 00 FF 	SET R1, $00FF
+1008   019F 81 00       	AND R1
+SIMPL_Suite16_2020_5.asm line 1009: Unused data in MS byte of argument. (1)
+1009   01A0 05 C5       	BNE checksum_error
+1010   01A1             	
+1011   01A1 08 00 00 EF 	call crlf
+1012   01A3 10 00 00 3E 	SET R0, 62				; > cursor
+1013   01A5 0C 00       	OUT						; Print cursor
 SIMPL_Suite16_2020_5.asm line 1014: Unused data in MS byte of argument. (1)
-1014   01A0 05 C5       	BNE checksum_error
-1015   01A1             	
-1016   01A1 08 00 00 EF 	call crlf
-1017   01A3 10 00 00 3E 	SET R0, 62				; > cursor
-1018   01A5 0C 00       	OUT						; Print cursor
-SIMPL_Suite16_2020_5.asm line 1019: Unused data in MS byte of argument. (1)
-1019   01A6 00 69       	BRA get_colon
-1020   01A7             	
-1021   01A7 07 00 01 CE 	JMP loop				 ; TODO check
-1022   01A9             	
-1023   01A9             invalid:
-1024   01A9 08 00 00 EF 	call crlf
-1025   01AB 11 00 02 32 	SET R1, invalid_msg
-1026   01AD 08 00 00 E7 	call puts
-1027   01AF 08 00 00 EF 	call crlf
-SIMPL_Suite16_2020_5.asm line 1028: Unused data in MS byte of argument. (1)
-1028   01B1 00 60       	BRA starting_addr
-1029   01B2             	
-1030   01B2             endload:
-1031   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
-1032   01B4             
-1033   01B4 2E 00       	LD R0, R14				; get checksum byte
-1034   01B5 11 00 00 FF 	SET R1, $00FF
-1035   01B7 81 00       	AND R1
-SIMPL_Suite16_2020_5.asm line 1036: Unused data in MS byte of argument. (1)
-1036   01B8 05 C5       	BNE checksum_error
-1037   01B9 08 00 00 EF 	call crlf
-1038   01BB 11 00 02 46 	SET R1, done_msg
-1039   01BD 08 00 00 E7 	call puts
-1040   01BF 08 00 00 EF 	call crlf
-1041   01C1 08 00 00 EF 	call crlf
-1042   01C3             
-1043   01C3             	; jump to fixed memory location (loaded program)
-1044   01C3             	; loader program has to start at location "program_start" for now
-1045   01C3 07 00 03 00 	JMP program_start
-1046   01C5             	
-1047   01C5             checksum_error:
-1048   01C5 08 00 00 EF 	call crlf
-1049   01C7 11 00 02 23 	SET R1, error_msg
-1050   01C9 08 00 00 E7 	call puts
-1051   01CB 08 00 00 EF 	call crlf
-SIMPL_Suite16_2020_5.asm line 1052: Unused data in MS byte of argument. (1)
-1052   01CD 00 60       	BRA starting_addr
-1053   01CE             	
-1054   01CE             	; program should never get here !!!
-1055   01CE             loop:
-SIMPL_Suite16_2020_5.asm line 1056: Unused data in MS byte of argument. (1)
-1056   01CE 00 CE       	BRA loop
-1057   01CF             
-1058   01CF             getnibble:
-1059   01CF 0D 00       	IN				; read char from serial in
-1060   01D0 11 00 07 80 	SET R1, $780
-1061   01D2 41 00       	LD R0, @R1		; get character
-1062   01D3 0B 30       	SBI $30		
-1063   01D4 32 00       	ST R2, R0		; save temporary
-1064   01D5 0B 0A       	SBI 10
-SIMPL_Suite16_2020_5.asm line 1065: Unused data in MS byte of argument. (1)
-1065   01D6 02 DA       	BLT decimal
-1066   01D7 22 00       	LD R0, R2		; restore value
-1067   01D8 0B 07       	SBI 7
-SIMPL_Suite16_2020_5.asm line 1068: Unused data in MS byte of argument. (1)
-1068   01D9 00 DB       	BRA hexadecimal
-1069   01DA             decimal:	
-1070   01DA 22 00       	LD R0, R2		; restore value
-1071   01DB             hexadecimal:	
-1072   01DB 37 00       	ST R7, R0		; value is stored in R7
-1073   01DC 09 00       	RET
-1074   01DD             	
-1075   01DD             ;
-1076   01DD             ;
-1077   01DD             ;
-1078   01DD             getbyte:
-1079   01DD 08 00 01 CF 	call getnibble
-1080   01DF 27 00       	LD R0, R7
-1081   01E0 A0 00       	ADD R0
-1082   01E1 A0 00       	ADD R0
-1083   01E2 A0 00       	ADD R0
-1084   01E3 A0 00       	ADD R0
-1085   01E4 38 00       	ST R8, R0		; temporary store msb 
-1086   01E5 08 00 01 CF 	call getnibble
-1087   01E7 27 00       	LD R0, R7		; get back lsb
-1088   01E8 98 00       	OR R8			; create word value
-1089   01E9 37 00       	ST R7, R0		; value is stored in R7
-1090   01EA             	
-1091   01EA             	; store byte for checksum
-1092   01EA 2E 00       	LD R0, R14		; load checksum
-1093   01EB A7 00       	ADD R7			; add byte to checksum
-1094   01EC 3E 00       	ST R14, R0
-1095   01ED             	
-1096   01ED 09 00       	RET
-1097   01EE             
-1098   01EE             getword:
-1099   01EE 08 00 01 DD 	call getbyte
-1100   01F0 27 00       	LD R0, R7
-1101   01F1 A0 00       	ADD R0
-1102   01F2 A0 00       	ADD R0
-1103   01F3 A0 00       	ADD R0
-1104   01F4 A0 00       	ADD R0
-1105   01F5 A0 00       	ADD R0
-1106   01F6 A0 00       	ADD R0
-1107   01F7 A0 00       	ADD R0
-1108   01F8 A0 00       	ADD R0
-1109   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
-1110   01FA 08 00 01 DD 	call getbyte
-1111   01FC 27 00       	LD R0, R7		; get back lsb ???
-1112   01FD 99 00       	OR R9
-1113   01FE 37 00       	ST R7, R0
-1114   01FF 09 00       	RET
-1115   0200             
-1116   0200             	
-1117   0200             	;---------------------------------------Arithmetic & Logic-----------------------------------
-1118   0200             _add:	  
-1119   0200 A1 00       	  ADD R1    ; ADD
-1120   0201 00 47             BRA NEXT
-1121   0202             _sub:	  
-1122   0202 B1 00             SUB R1   ; SUB
-1123   0203 00 47             BRA NEXT
-1124   0204             _and:     
-1125   0204 81 00             AND R1    ; AND
-1126   0205 00 47             BRA NEXT
-1127   0206             _or:	  	  
-1128   0206 91 00             OR  R1    ; OR
-1129   0207 00 47             BRA NEXT
-1130   0208             _xor:
-1131   0208 F1 00             XOR  R1   ; XOR
-1132   0209 00 47             BRA NEXT
-1133   020A             _inv:	  
-1134   020A C1 00             INV  R1   ; INV
-1135   020B 00 47             BRA NEXT
-1136   020C             _inc:
-1137   020C E0 00             INC  R0   ; INC
-1138   020D 00 47             BRA NEXT
-1139   020E             _dec:	  
-1140   020E D0 00             DEC  R0   ; DEC
-1141   020F 00 47             BRA NEXT
-1142   0210             	  
-1143   0210             	; Arithmetic and logic operations  16 instructions  
-1144   0210             ;----------------------------------------------------------------------------------------------------------	
-1145   0210             
-1146   0210             
-1147   0210             	
-1148   0210             ; Message definitions
-1149   0210             ;
-1150   0210             .MSFIRST
-1151   0210 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
-1151   0212 00 69 00 74 
-1151   0214 00 65 00 31 
-1151   0216 00 36 00 20 
-1151   0218 00 48 00 65 
-1151   021A 00 78 00 20 
-1151   021C 00 4C 00 6F 
-1151   021E 00 61 00 64 
-1151   0220 00 65 00 72 
-1151   0222 00 00 
-1152   0223 00 43 00 68 error_msg		.WORD	"Checksum error", eos
-1152   0225 00 65 00 63 
-1152   0227 00 6B 00 73 
-1152   0229 00 75 00 6D 
-1152   022B 00 20 00 65 
-1152   022D 00 72 00 72 
-1152   022F 00 6F 00 72 
-1152   0231 00 00 
-1153   0232 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
-1153   0234 00 76 00 61 
-1153   0236 00 6C 00 69 
-1153   0238 00 64 00 20 
-1153   023A 00 72 00 65 
-1153   023C 00 63 00 6F 
-1153   023E 00 72 00 64 
-1153   0240 00 20 00 74 
-1153   0242 00 79 00 70 
-1153   0244 00 65 00 00 
-1154   0246 00 44 00 6F done_msg		.WORD	"Done loading", eos
-1154   0248 00 6E 00 65 
-1154   024A 00 20 00 6C 
-1154   024C 00 6F 00 61 
-1154   024E 00 64 00 69 
-1154   0250 00 6E 00 67 
-1154   0252 00 00 
-1155   0253             
-1156   0253             ;
-1157   0253             ; 
-1158   0253             ;
-1159   0253             	
-1160   0253             .MSFIRST
-1161   0253 00 0D       cr				.WORD $0d	; carriage return
-1162   0254 00 0A       lf				.WORD $0a	; line feed
-1163   0255 00 20       space			.WORD $20	; space
-1164   0256             .end	
+1014   01A6 00 69       	BRA get_colon
+1015   01A7             	
+1016   01A7 07 00 01 CE 	JMP loop				 ; TODO check
+1017   01A9             	
+1018   01A9             invalid:
+1019   01A9 08 00 00 EF 	call crlf
+1020   01AB 11 00 02 32 	SET R1, invalid_msg
+1021   01AD 08 00 00 E7 	call puts
+1022   01AF 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1023: Unused data in MS byte of argument. (1)
+1023   01B1 00 60       	BRA starting_addr
+1024   01B2             	
+1025   01B2             endload:
+1026   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
+1027   01B4             
+1028   01B4 2E 00       	LD R0, R14				; get checksum byte
+1029   01B5 11 00 00 FF 	SET R1, $00FF
+1030   01B7 81 00       	AND R1
+SIMPL_Suite16_2020_5.asm line 1031: Unused data in MS byte of argument. (1)
+1031   01B8 05 C5       	BNE checksum_error
+1032   01B9 08 00 00 EF 	call crlf
+1033   01BB 11 00 02 46 	SET R1, done_msg
+1034   01BD 08 00 00 E7 	call puts
+1035   01BF 08 00 00 EF 	call crlf
+1036   01C1 08 00 00 EF 	call crlf
+1037   01C3             
+1038   01C3             	; jump to fixed memory location (loaded program)
+1039   01C3             	; loader program has to start at location "program_start" for now
+1040   01C3 07 00 03 00 	JMP program_start
+1041   01C5             	
+1042   01C5             checksum_error:
+1043   01C5 08 00 00 EF 	call crlf
+1044   01C7 11 00 02 23 	SET R1, error_msg
+1045   01C9 08 00 00 E7 	call puts
+1046   01CB 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1047: Unused data in MS byte of argument. (1)
+1047   01CD 00 60       	BRA starting_addr
+1048   01CE             	
+1049   01CE             	; program should never get here !!!
+1050   01CE             loop:
+SIMPL_Suite16_2020_5.asm line 1051: Unused data in MS byte of argument. (1)
+1051   01CE 00 CE       	BRA loop
+1052   01CF             
+1053   01CF             getnibble:
+1054   01CF 0D 00       	IN				; read char from serial in
+1055   01D0 11 00 07 80 	SET R1, $780
+1056   01D2 41 00       	LD R0, @R1		; get character
+1057   01D3 0B 30       	SBI $30		
+1058   01D4 32 00       	ST R2, R0		; save temporary
+1059   01D5 0B 0A       	SBI 10
+SIMPL_Suite16_2020_5.asm line 1060: Unused data in MS byte of argument. (1)
+1060   01D6 02 DA       	BLT decimal
+1061   01D7 22 00       	LD R0, R2		; restore value
+1062   01D8 0B 07       	SBI 7
+SIMPL_Suite16_2020_5.asm line 1063: Unused data in MS byte of argument. (1)
+1063   01D9 00 DB       	BRA hexadecimal
+1064   01DA             decimal:	
+1065   01DA 22 00       	LD R0, R2		; restore value
+1066   01DB             hexadecimal:	
+1067   01DB 37 00       	ST R7, R0		; value is stored in R7
+1068   01DC 09 00       	RET
+1069   01DD             	
+1070   01DD             ;
+1071   01DD             ;
+1072   01DD             ;
+1073   01DD             getbyte:
+1074   01DD 08 00 01 CF 	call getnibble
+1075   01DF 27 00       	LD R0, R7
+1076   01E0 A0 00       	ADD R0
+1077   01E1 A0 00       	ADD R0
+1078   01E2 A0 00       	ADD R0
+1079   01E3 A0 00       	ADD R0
+1080   01E4 38 00       	ST R8, R0		; temporary store msb 
+1081   01E5 08 00 01 CF 	call getnibble
+1082   01E7 27 00       	LD R0, R7		; get back lsb
+1083   01E8 98 00       	OR R8			; create word value
+1084   01E9 37 00       	ST R7, R0		; value is stored in R7
+1085   01EA             	
+1086   01EA             	; store byte for checksum
+1087   01EA 2E 00       	LD R0, R14		; load checksum
+1088   01EB A7 00       	ADD R7			; add byte to checksum
+1089   01EC 3E 00       	ST R14, R0
+1090   01ED             	
+1091   01ED 09 00       	RET
+1092   01EE             
+1093   01EE             getword:
+1094   01EE 08 00 01 DD 	call getbyte
+1095   01F0 27 00       	LD R0, R7
+1096   01F1 A0 00       	ADD R0
+1097   01F2 A0 00       	ADD R0
+1098   01F3 A0 00       	ADD R0
+1099   01F4 A0 00       	ADD R0
+1100   01F5 A0 00       	ADD R0
+1101   01F6 A0 00       	ADD R0
+1102   01F7 A0 00       	ADD R0
+1103   01F8 A0 00       	ADD R0
+1104   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
+1105   01FA 08 00 01 DD 	call getbyte
+1106   01FC 27 00       	LD R0, R7		; get back lsb ???
+1107   01FD 99 00       	OR R9
+1108   01FE 37 00       	ST R7, R0
+1109   01FF 09 00       	RET
+1110   0200             
+1111   0200             	
+1112   0200             	;---------------------------------------Arithmetic & Logic-----------------------------------
+1113   0200             _add:	  
+1114   0200 A1 00       	  ADD R1    ; ADD
+1115   0201 00 47             BRA NEXT
+1116   0202             _sub:	  
+1117   0202 B1 00             SUB R1   ; SUB
+1118   0203 00 47             BRA NEXT
+1119   0204             _and:     
+1120   0204 81 00             AND R1    ; AND
+1121   0205 00 47             BRA NEXT
+1122   0206             _or:	  	  
+1123   0206 91 00             OR  R1    ; OR
+1124   0207 00 47             BRA NEXT
+1125   0208             _xor:
+1126   0208 F1 00             XOR  R1   ; XOR
+1127   0209 00 47             BRA NEXT
+1128   020A             _inv:	  
+1129   020A C1 00             INV  R1   ; INV
+1130   020B 00 47             BRA NEXT
+1131   020C             _inc:
+1132   020C E0 00             INC  R0   ; INC
+1133   020D 00 47             BRA NEXT
+1134   020E             _dec:	  
+1135   020E D0 00             DEC  R0   ; DEC
+1136   020F 00 47             BRA NEXT
+1137   0210             	  
+1138   0210             	; Arithmetic and logic operations  16 instructions  
+1139   0210             ;----------------------------------------------------------------------------------------------------------	
+1140   0210             
+1141   0210             
+1142   0210             	
+1143   0210             ; Message definitions
+1144   0210             ;
+1145   0210             .MSFIRST
+1146   0210 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
+1146   0212 00 69 00 74 
+1146   0214 00 65 00 31 
+1146   0216 00 36 00 20 
+1146   0218 00 48 00 65 
+1146   021A 00 78 00 20 
+1146   021C 00 4C 00 6F 
+1146   021E 00 61 00 64 
+1146   0220 00 65 00 72 
+1146   0222 00 00 
+1147   0223 00 43 00 68 error_msg		.WORD	"Checksum error", eos
+1147   0225 00 65 00 63 
+1147   0227 00 6B 00 73 
+1147   0229 00 75 00 6D 
+1147   022B 00 20 00 65 
+1147   022D 00 72 00 72 
+1147   022F 00 6F 00 72 
+1147   0231 00 00 
+1148   0232 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
+1148   0234 00 76 00 61 
+1148   0236 00 6C 00 69 
+1148   0238 00 64 00 20 
+1148   023A 00 72 00 65 
+1148   023C 00 63 00 6F 
+1148   023E 00 72 00 64 
+1148   0240 00 20 00 74 
+1148   0242 00 79 00 70 
+1148   0244 00 65 00 00 
+1149   0246 00 44 00 6F done_msg		.WORD	"Done loading", eos
+1149   0248 00 6E 00 65 
+1149   024A 00 20 00 6C 
+1149   024C 00 6F 00 61 
+1149   024E 00 64 00 69 
+1149   0250 00 6E 00 67 
+1149   0252 00 00 
+1150   0253             
+1151   0253             ;
+1152   0253             ; 
+1153   0253             ;
+1154   0253             	
+1155   0253             .MSFIRST
+1156   0253 00 0D       cr				.WORD $0d	; carriage return
+1157   0254 00 0A       lf				.WORD $0a	; line feed
+1158   0255 00 20       space			.WORD $20	; space
+1159   0256             .end	
 ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 -----------------------------------------------------
 0000  00 72 18 00 07 80 E8 00 48 00 34 00 0B 0D 06 25
