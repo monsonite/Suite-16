@@ -863,32 +863,32 @@ crlf:					; Output a CR/LF pair
         .WORD   _under    ; UNDER _		
         .WORD   _tick     ; TICK
 		
-        .WORD   $0F00     ; a       
-        .WORD   $00A8     ; b
-        .WORD   $0F00     ; c
-        .WORD   $0F00     ; d
-        .WORD   $0F00     ; e
-        .WORD   $0F00     ; f
-        .WORD   $0F00     ; g
-        .WORD   $0F00     ; h
-        .WORD   $0F00     ; i      
-        .WORD   $00B0     ; j
-        .WORD   $0F00     ; k
-        .WORD   $0F00     ; l
-        .WORD   $0F00     ; m
-        .WORD   $0F00     ; n
-        .WORD   $0F00     ; o
-        .WORD   $0F00     ; p
-        .WORD   $0F00     ; q
-        .WORD   $00B8     ; r
-        .WORD   $0F00     ; s
-        .WORD   $0F00     ; t
-        .WORD   $0F00     ; u
-        .WORD   $0F00     ; v
-        .WORD   $0F00     ; w
-        .WORD   $0F00     ; x
-        .WORD   $0F00     ; y   
-        .WORD   $0F00     ; z
+        .WORD   _a     ; a       
+        .WORD   _b     ; b
+        .WORD   _c     ; c
+        .WORD   _d     ; d
+        .WORD   _e     ; e
+        .WORD   _f     ; f
+        .WORD   _g     ; g
+        .WORD   _h     ; h
+        .WORD   _i     ; i      
+        .WORD   _j     ; j
+        .WORD   _k     ; k
+        .WORD   _l     ; l
+        .WORD   _m     ; m
+        .WORD   _n     ; n
+        .WORD   _o     ; o
+        .WORD   _p     ; p
+        .WORD   _q     ; q
+        .WORD   _r     ; r
+        .WORD   _s     ; s
+        .WORD   _t     ; t
+        .WORD   _u     ; u
+        .WORD   _v     ; v
+        .WORD   _w     ; w
+        .WORD   _x     ; x
+        .WORD   _y     ; y   
+        .WORD   _z     ; z
 		
         .WORD   _tor      ; BRACEL {
         .WORD   _or       ; OR     |   
@@ -1234,8 +1234,115 @@ _dec:
 	; Arithmetic and logic operations  4 instructions  
 ;----------------------------------------------------------------------------------------------------------	
 
-
+_a:
 	
+		BRA _next
+
+_b:
+	
+		BRA  _next
+
+_c:
+
+		BRA  _next
+
+_d:
+	
+		BRA  _next
+
+_e:
+	
+		BRA  _next
+
+_f:
+	
+		BRA  _next
+
+_g:
+	
+		BRA  _next
+
+_h:
+	
+		BRA  _next			
+
+_i:
+	
+		BRA  _next
+
+_j:
+	
+		BRA  _next
+
+_k:
+	
+		BRA  _next
+
+_l:
+	
+		BRA  _next
+
+_m:
+	
+		BRA  _next
+
+_n:
+	
+		BRA  _next
+
+_o:
+	
+		BRA  _next
+
+_p:
+	
+		BRA  _next	
+
+_q:
+	
+		BRA  _next
+
+_r:
+	
+		BRA  _next
+
+_s:
+	
+		BRA  _next
+
+_t:
+	
+		BRA  _next
+
+_u:
+	
+		BRA  _next
+
+_v:
+	
+		BRA  _next
+
+_w:
+	
+		BRA  _next
+
+_x:
+	
+		BRA  _next
+
+_y:
+	
+		BRA  _next
+
+_z:
+	
+		BRA  _next
+		
+
+
+		
+;--------------------------------------------------------------------------------------------------------------------------
+		
 ; Message definitions
 ;
 .MSFIRST

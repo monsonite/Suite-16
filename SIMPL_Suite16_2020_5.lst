@@ -755,7 +755,7 @@
 0755   00EF             	
 0756   00EF             crlf:					; Output a CR/LF pair
 0757   00EF             
-0758   00EF 10 00 02 72 	SET R0, cr			; Load a cr
+0758   00EF 10 00 02 8C 	SET R0, cr			; Load a cr
 0759   00F1 0C 00       	OUT
 0760   00F2 0B 03       	SBI 3				; Subtract 3 to make a lf
 0761   00F3 0C 00       	OUT
@@ -863,32 +863,32 @@
 0863   013F 21 02               .WORD   _under    ; UNDER _		
 0864   0140 22 02               .WORD   _tick     ; TICK
 0865   0141             		
-0866   0141 00 0F               .WORD   $0F00     ; a       
-0867   0142 A8 00               .WORD   $00A8     ; b
-0868   0143 00 0F               .WORD   $0F00     ; c
-0869   0144 00 0F               .WORD   $0F00     ; d
-0870   0145 00 0F               .WORD   $0F00     ; e
-0871   0146 00 0F               .WORD   $0F00     ; f
-0872   0147 00 0F               .WORD   $0F00     ; g
-0873   0148 00 0F               .WORD   $0F00     ; h
-0874   0149 00 0F               .WORD   $0F00     ; i      
-0875   014A B0 00               .WORD   $00B0     ; j
-0876   014B 00 0F               .WORD   $0F00     ; k
-0877   014C 00 0F               .WORD   $0F00     ; l
-0878   014D 00 0F               .WORD   $0F00     ; m
-0879   014E 00 0F               .WORD   $0F00     ; n
-0880   014F 00 0F               .WORD   $0F00     ; o
-0881   0150 00 0F               .WORD   $0F00     ; p
-0882   0151 00 0F               .WORD   $0F00     ; q
-0883   0152 B8 00               .WORD   $00B8     ; r
-0884   0153 00 0F               .WORD   $0F00     ; s
-0885   0154 00 0F               .WORD   $0F00     ; t
-0886   0155 00 0F               .WORD   $0F00     ; u
-0887   0156 00 0F               .WORD   $0F00     ; v
-0888   0157 00 0F               .WORD   $0F00     ; w
-0889   0158 00 0F               .WORD   $0F00     ; x
-0890   0159 00 0F               .WORD   $0F00     ; y   
-0891   015A 00 0F               .WORD   $0F00     ; z
+0866   0141 2F 02               .WORD   _a     ; a       
+0867   0142 30 02               .WORD   _b     ; b
+0868   0143 31 02               .WORD   _c     ; c
+0869   0144 32 02               .WORD   _d     ; d
+0870   0145 33 02               .WORD   _e     ; e
+0871   0146 34 02               .WORD   _f     ; f
+0872   0147 35 02               .WORD   _g     ; g
+0873   0148 36 02               .WORD   _h     ; h
+0874   0149 37 02               .WORD   _i     ; i      
+0875   014A 38 02               .WORD   _j     ; j
+0876   014B 39 02               .WORD   _k     ; k
+0877   014C 3A 02               .WORD   _l     ; l
+0878   014D 3B 02               .WORD   _m     ; m
+0879   014E 3C 02               .WORD   _n     ; n
+0880   014F 3D 02               .WORD   _o     ; o
+0881   0150 3E 02               .WORD   _p     ; p
+0882   0151 3F 02               .WORD   _q     ; q
+0883   0152 40 02               .WORD   _r     ; r
+0884   0153 41 02               .WORD   _s     ; s
+0885   0154 42 02               .WORD   _t     ; t
+0886   0155 43 02               .WORD   _u     ; u
+0887   0156 44 02               .WORD   _v     ; v
+0888   0157 45 02               .WORD   _w     ; w
+0889   0158 46 02               .WORD   _x     ; x
+0890   0159 47 02               .WORD   _y     ; y   
+0891   015A 48 02               .WORD   _z     ; z
 0892   015B             		
 0893   015B 23 02               .WORD   _tor      ; BRACEL {
 0894   015C 24 02               .WORD   _or       ; OR     |   
@@ -914,7 +914,7 @@
 0914   0160             
 0915   0160             starting_addr:
 0916   0160             ; Print a welcome message
-0917   0160 11 00 02 2F 	SET R1, hello_msg
+0917   0160 11 00 02 49 	SET R1, hello_msg
 0918   0162 08 00 00 E7 	CALL puts
 0919   0164 08 00 00 EF 	CALL crlf
 0920   0166 10 00 00 3E 	SET R0, 62				; > cursor
@@ -1015,7 +1015,7 @@ SIMPL_Suite16_2020_5.asm line 1006: Unused data in MS byte of argument. (1)
 1009   01A9             	
 1010   01A9             invalid:
 1011   01A9 08 00 00 EF 	call crlf
-1012   01AB 11 00 02 51 	SET R1, invalid_msg
+1012   01AB 11 00 02 6B 	SET R1, invalid_msg
 1013   01AD 08 00 00 E7 	call puts
 1014   01AF 08 00 00 EF 	call crlf
 SIMPL_Suite16_2020_5.asm line 1015: Unused data in MS byte of argument. (1)
@@ -1030,7 +1030,7 @@ SIMPL_Suite16_2020_5.asm line 1015: Unused data in MS byte of argument. (1)
 SIMPL_Suite16_2020_5.asm line 1023: Unused data in MS byte of argument. (1)
 1023   01B8 05 C5       	BNE checksum_error
 1024   01B9 08 00 00 EF 	call crlf
-1025   01BB 11 00 02 65 	SET R1, done_msg
+1025   01BB 11 00 02 7F 	SET R1, done_msg
 1026   01BD 08 00 00 E7 	call puts
 1027   01BF 08 00 00 EF 	call crlf
 1028   01C1 08 00 00 EF 	call crlf
@@ -1041,7 +1041,7 @@ SIMPL_Suite16_2020_5.asm line 1023: Unused data in MS byte of argument. (1)
 1033   01C5             	
 1034   01C5             checksum_error:
 1035   01C5 08 00 00 EF 	call crlf
-1036   01C7 11 00 02 42 	SET R1, error_msg
+1036   01C7 11 00 02 5C 	SET R1, error_msg
 1037   01C9 08 00 00 E7 	call puts
 1038   01CB 08 00 00 EF 	call crlf
 SIMPL_Suite16_2020_5.asm line 1039: Unused data in MS byte of argument. (1)
@@ -1280,56 +1280,189 @@ SIMPL_Suite16_2020_5.asm line 1222: Unused data in MS byte of argument. (2)
 1234   022F             	; Arithmetic and logic operations  4 instructions  
 1235   022F             ;----------------------------------------------------------------------------------------------------------	
 1236   022F             
-1237   022F             
+1237   022F             _a:
 1238   022F             	
-1239   022F             ; Message definitions
-1240   022F             ;
-1241   022F             .MSFIRST
-1242   022F 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
-1242   0231 00 69 00 74 
-1242   0233 00 65 00 31 
-1242   0235 00 36 00 20 
-1242   0237 00 48 00 65 
-1242   0239 00 78 00 20 
-1242   023B 00 4C 00 6F 
-1242   023D 00 61 00 64 
-1242   023F 00 65 00 72 
-1242   0241 00 00 
-1243   0242 00 43 00 68 error_msg		.WORD	"Checksum error", eos
-1243   0244 00 65 00 63 
-1243   0246 00 6B 00 73 
-1243   0248 00 75 00 6D 
-1243   024A 00 20 00 65 
-1243   024C 00 72 00 72 
-1243   024E 00 6F 00 72 
-1243   0250 00 00 
-1244   0251 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
-1244   0253 00 76 00 61 
-1244   0255 00 6C 00 69 
-1244   0257 00 64 00 20 
-1244   0259 00 72 00 65 
-1244   025B 00 63 00 6F 
-1244   025D 00 72 00 64 
-1244   025F 00 20 00 74 
-1244   0261 00 79 00 70 
-1244   0263 00 65 00 00 
-1245   0265 00 44 00 6F done_msg		.WORD	"Done loading", eos
-1245   0267 00 6E 00 65 
-1245   0269 00 20 00 6C 
-1245   026B 00 6F 00 61 
-1245   026D 00 64 00 69 
-1245   026F 00 6E 00 67 
-1245   0271 00 00 
-1246   0272             
-1247   0272             ;
-1248   0272             ; 
-1249   0272             ;
-1250   0272             	
-1251   0272             .MSFIRST
-1252   0272 00 0D       cr				.WORD $0d	; carriage return
-1253   0273 00 0A       lf				.WORD $0a	; line feed
-1254   0274 00 20       space			.WORD $20	; space
-1255   0275             .end	
+SIMPL_Suite16_2020_5.asm line 1239: Unused data in MS byte of argument. (2)
+1239   022F 00 00       		BRA _next
+1240   0230             
+1241   0230             _b:
+1242   0230             	
+SIMPL_Suite16_2020_5.asm line 1243: Unused data in MS byte of argument. (2)
+1243   0230 00 00       		BRA  _next
+1244   0231             
+1245   0231             _c:
+1246   0231             
+SIMPL_Suite16_2020_5.asm line 1247: Unused data in MS byte of argument. (2)
+1247   0231 00 00       		BRA  _next
+1248   0232             
+1249   0232             _d:
+1250   0232             	
+SIMPL_Suite16_2020_5.asm line 1251: Unused data in MS byte of argument. (2)
+1251   0232 00 00       		BRA  _next
+1252   0233             
+1253   0233             _e:
+1254   0233             	
+SIMPL_Suite16_2020_5.asm line 1255: Unused data in MS byte of argument. (2)
+1255   0233 00 00       		BRA  _next
+1256   0234             
+1257   0234             _f:
+1258   0234             	
+SIMPL_Suite16_2020_5.asm line 1259: Unused data in MS byte of argument. (2)
+1259   0234 00 00       		BRA  _next
+1260   0235             
+1261   0235             _g:
+1262   0235             	
+SIMPL_Suite16_2020_5.asm line 1263: Unused data in MS byte of argument. (2)
+1263   0235 00 00       		BRA  _next
+1264   0236             
+1265   0236             _h:
+1266   0236             	
+SIMPL_Suite16_2020_5.asm line 1267: Unused data in MS byte of argument. (2)
+1267   0236 00 00       		BRA  _next			
+1268   0237             
+1269   0237             _i:
+1270   0237             	
+SIMPL_Suite16_2020_5.asm line 1271: Unused data in MS byte of argument. (2)
+1271   0237 00 00       		BRA  _next
+1272   0238             
+1273   0238             _j:
+1274   0238             	
+SIMPL_Suite16_2020_5.asm line 1275: Unused data in MS byte of argument. (2)
+1275   0238 00 00       		BRA  _next
+1276   0239             
+1277   0239             _k:
+1278   0239             	
+SIMPL_Suite16_2020_5.asm line 1279: Unused data in MS byte of argument. (2)
+1279   0239 00 00       		BRA  _next
+1280   023A             
+1281   023A             _l:
+1282   023A             	
+SIMPL_Suite16_2020_5.asm line 1283: Unused data in MS byte of argument. (2)
+1283   023A 00 00       		BRA  _next
+1284   023B             
+1285   023B             _m:
+1286   023B             	
+SIMPL_Suite16_2020_5.asm line 1287: Unused data in MS byte of argument. (2)
+1287   023B 00 00       		BRA  _next
+1288   023C             
+1289   023C             _n:
+1290   023C             	
+SIMPL_Suite16_2020_5.asm line 1291: Unused data in MS byte of argument. (2)
+1291   023C 00 00       		BRA  _next
+1292   023D             
+1293   023D             _o:
+1294   023D             	
+SIMPL_Suite16_2020_5.asm line 1295: Unused data in MS byte of argument. (2)
+1295   023D 00 00       		BRA  _next
+1296   023E             
+1297   023E             _p:
+1298   023E             	
+SIMPL_Suite16_2020_5.asm line 1299: Unused data in MS byte of argument. (2)
+1299   023E 00 00       		BRA  _next	
+1300   023F             
+1301   023F             _q:
+1302   023F             	
+SIMPL_Suite16_2020_5.asm line 1303: Unused data in MS byte of argument. (2)
+1303   023F 00 00       		BRA  _next
+1304   0240             
+1305   0240             _r:
+1306   0240             	
+SIMPL_Suite16_2020_5.asm line 1307: Unused data in MS byte of argument. (2)
+1307   0240 00 00       		BRA  _next
+1308   0241             
+1309   0241             _s:
+1310   0241             	
+SIMPL_Suite16_2020_5.asm line 1311: Unused data in MS byte of argument. (2)
+1311   0241 00 00       		BRA  _next
+1312   0242             
+1313   0242             _t:
+1314   0242             	
+SIMPL_Suite16_2020_5.asm line 1315: Unused data in MS byte of argument. (2)
+1315   0242 00 00       		BRA  _next
+1316   0243             
+1317   0243             _u:
+1318   0243             	
+SIMPL_Suite16_2020_5.asm line 1319: Unused data in MS byte of argument. (2)
+1319   0243 00 00       		BRA  _next
+1320   0244             
+1321   0244             _v:
+1322   0244             	
+SIMPL_Suite16_2020_5.asm line 1323: Unused data in MS byte of argument. (2)
+1323   0244 00 00       		BRA  _next
+1324   0245             
+1325   0245             _w:
+1326   0245             	
+SIMPL_Suite16_2020_5.asm line 1327: Unused data in MS byte of argument. (2)
+1327   0245 00 00       		BRA  _next
+1328   0246             
+1329   0246             _x:
+1330   0246             	
+SIMPL_Suite16_2020_5.asm line 1331: Unused data in MS byte of argument. (2)
+1331   0246 00 00       		BRA  _next
+1332   0247             
+1333   0247             _y:
+1334   0247             	
+SIMPL_Suite16_2020_5.asm line 1335: Unused data in MS byte of argument. (2)
+1335   0247 00 00       		BRA  _next
+1336   0248             
+1337   0248             _z:
+1338   0248             	
+SIMPL_Suite16_2020_5.asm line 1339: Unused data in MS byte of argument. (2)
+1339   0248 00 00       		BRA  _next
+1340   0249             		
+1341   0249             
+1342   0249             
+1343   0249             		
+1344   0249             ;--------------------------------------------------------------------------------------------------------------------------
+1345   0249             		
+1346   0249             ; Message definitions
+1347   0249             ;
+1348   0249             .MSFIRST
+1349   0249 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
+1349   024B 00 69 00 74 
+1349   024D 00 65 00 31 
+1349   024F 00 36 00 20 
+1349   0251 00 48 00 65 
+1349   0253 00 78 00 20 
+1349   0255 00 4C 00 6F 
+1349   0257 00 61 00 64 
+1349   0259 00 65 00 72 
+1349   025B 00 00 
+1350   025C 00 43 00 68 error_msg		.WORD	"Checksum error", eos
+1350   025E 00 65 00 63 
+1350   0260 00 6B 00 73 
+1350   0262 00 75 00 6D 
+1350   0264 00 20 00 65 
+1350   0266 00 72 00 72 
+1350   0268 00 6F 00 72 
+1350   026A 00 00 
+1351   026B 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
+1351   026D 00 76 00 61 
+1351   026F 00 6C 00 69 
+1351   0271 00 64 00 20 
+1351   0273 00 72 00 65 
+1351   0275 00 63 00 6F 
+1351   0277 00 72 00 64 
+1351   0279 00 20 00 74 
+1351   027B 00 79 00 70 
+1351   027D 00 65 00 00 
+1352   027F 00 44 00 6F done_msg		.WORD	"Done loading", eos
+1352   0281 00 6E 00 65 
+1352   0283 00 20 00 6C 
+1352   0285 00 6F 00 61 
+1352   0287 00 64 00 69 
+1352   0289 00 6E 00 67 
+1352   028B 00 00 
+1353   028C             
+1354   028C             ;
+1355   028C             ; 
+1356   028C             ;
+1357   028C             	
+1358   028C             .MSFIRST
+1359   028C 00 0D       cr				.WORD $0d	; carriage return
+1360   028D 00 0A       lf				.WORD $0a	; line feed
+1361   028E 00 20       space			.WORD $20	; space
+1362   028F             .end	
 ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 -----------------------------------------------------
 0000  00 72 18 00 07 80 E8 00 48 00 34 00 0B 0D 06 25
@@ -1362,7 +1495,7 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 01B0  EB 00 DA 00 D9 00 2A 00 01 D2 29 00 04 E4 08 00
 01C0  00 EF 1A 00 00 16 00 C9 08 00 00 EF 00 47 08 00
 01D0  00 EC E1 00 01 E7 09 00 41 00 0C 00 09 00 10 00
-01E0  02 72 0C 00 0B 03 0C 00 09 00 00 00 00 00 00 00
+01E0  02 8C 0C 00 0B 03 0C 00 09 00 00 00 00 00 00 00
 01F0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 0200  02 02 03 02 04 02 05 02 06 02 07 02 08 02 0A 02
 0210  0B 02 0C 02 0D 02 0E 02 10 02 11 02 13 02 14 02
@@ -1372,11 +1505,11 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 0250  00 05 20 05 40 05 60 05 80 05 A0 05 C0 05 E0 05
 0260  00 06 20 06 60 06 80 06 A0 06 C0 06 E0 06 00 07
 0270  20 07 40 07 60 07 1C 02 1D 02 1E 02 1F 02 21 02
-0280  22 02 00 0F A8 00 00 0F 00 0F 00 0F 00 0F 00 0F
-0290  00 0F 00 0F B0 00 00 0F 00 0F 00 0F 00 0F 00 0F
-02A0  00 0F 00 0F B8 00 00 0F 00 0F 00 0F 00 0F 00 0F
-02B0  00 0F 00 0F 00 0F 23 02 24 02 26 02 27 02 29 02
-02C0  11 00 02 2F 08 00 00 E7 08 00 00 EF 10 00 00 3E
+0280  22 02 2F 02 30 02 31 02 32 02 33 02 34 02 35 02
+0290  36 02 37 02 38 02 39 02 3A 02 3B 02 3C 02 3D 02
+02A0  3E 02 3F 02 40 02 41 02 42 02 43 02 44 02 45 02
+02B0  46 02 47 02 48 02 23 02 24 02 26 02 27 02 29 02
+02C0  11 00 02 49 08 00 00 E7 08 00 00 EF 10 00 00 3E
 02D0  0C 00 1E 00 00 00 0D 00 11 00 07 80 41 00 0B 3A
 02E0  05 69 08 00 01 DD 27 00 3A 00 08 00 01 EE 27 00
 02F0  3B 00 08 00 01 DD 27 00 3D 00 11 00 00 01 37 00
@@ -1385,11 +1518,11 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 0320  08 00 01 DD 4B 00 97 00 5B 00 EB 00 DA 00 DA 00
 0330  2A 00 01 84 08 00 01 DD 2E 00 11 00 00 FF 81 00
 0340  05 C5 08 00 00 EF 10 00 00 3E 0C 00 00 69 07 00
-0350  01 CE 08 00 00 EF 11 00 02 51 08 00 00 E7 08 00
+0350  01 CE 08 00 00 EF 11 00 02 6B 08 00 00 E7 08 00
 0360  00 EF 00 60 08 00 01 DD 2E 00 11 00 00 FF 81 00
-0370  05 C5 08 00 00 EF 11 00 02 65 08 00 00 E7 08 00
+0370  05 C5 08 00 00 EF 11 00 02 7F 08 00 00 E7 08 00
 0380  00 EF 08 00 00 EF 07 00 03 00 08 00 00 EF 11 00
-0390  02 42 08 00 00 E7 08 00 00 EF 00 60 00 CE 0D 00
+0390  02 5C 08 00 00 E7 08 00 00 EF 00 60 00 CE 0D 00
 03A0  11 00 07 80 41 00 0B 30 32 00 0B 0A 02 DA 22 00
 03B0  0B 07 00 DB 22 00 37 00 09 00 08 00 01 CF 27 00
 03C0  A0 00 A0 00 A0 00 A0 00 38 00 08 00 01 CF 27 00
@@ -1401,16 +1534,19 @@ ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 0420  00 00 B1 00 00 00 00 00 00 00 00 00 00 00 00 00
 0430  00 00 00 00 00 00 00 00 00 00 00 00 00 00 F1 00
 0440  00 00 00 00 00 00 00 00 91 00 00 00 00 00 C0 00
-0450  00 00 0F 00 00 00 E0 00 00 47 D0 00 00 47 00 53
-0460  00 75 00 69 00 74 00 65 00 31 00 36 00 20 00 48
-0470  00 65 00 78 00 20 00 4C 00 6F 00 61 00 64 00 65
-0480  00 72 00 00 00 43 00 68 00 65 00 63 00 6B 00 73
-0490  00 75 00 6D 00 20 00 65 00 72 00 72 00 6F 00 72
-04A0  00 00 00 49 00 6E 00 76 00 61 00 6C 00 69 00 64
-04B0  00 20 00 72 00 65 00 63 00 6F 00 72 00 64 00 20
-04C0  00 74 00 79 00 70 00 65 00 00 00 44 00 6F 00 6E
-04D0  00 65 00 20 00 6C 00 6F 00 61 00 64 00 69 00 6E
-04E0  00 67 00 00 00 0D 00 0A 00 20 00 00 00 00 00 00
+0450  00 00 0F 00 00 00 E0 00 00 47 D0 00 00 47 00 00
+0460  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0470  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0480  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0490  00 00 00 53 00 75 00 69 00 74 00 65 00 31 00 36
+04A0  00 20 00 48 00 65 00 78 00 20 00 4C 00 6F 00 61
+04B0  00 64 00 65 00 72 00 00 00 43 00 68 00 65 00 63
+04C0  00 6B 00 73 00 75 00 6D 00 20 00 65 00 72 00 72
+04D0  00 6F 00 72 00 00 00 49 00 6E 00 76 00 61 00 6C
+04E0  00 69 00 64 00 20 00 72 00 65 00 63 00 6F 00 72
+04F0  00 64 00 20 00 74 00 79 00 70 00 65 00 00 00 44
+0500  00 6F 00 6E 00 65 00 20 00 6C 00 6F 00 61 00 64
+0510  00 69 00 6E 00 67 00 00 00 0D 00 0A 00 20 00 00
 
 
-tasm: Number of errors = 46
+tasm: Number of errors = 72
