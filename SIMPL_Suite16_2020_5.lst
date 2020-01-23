@@ -903,566 +903,565 @@
 0903   0160             
 0904   0160             ;-----------------------------------------Hex_Loader-----------------------------------------
 0905   0160             
-0906   0160             ; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
-0907   0160             ; Constant definitions
-0908   0160             ;
-0909   0160             loader_start	.equ	$0160		; hexloader starts here
-0910   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
-0911   0160             eos				.equ	$0000		; end of string
-0912   0160             
-0913   0160             .org	loader_start
-0914   0160             
-0915   0160             starting_addr:
-0916   0160             ; Print a welcome message
-0917   0160 11 00 02 49 	SET R1, hello_msg
-0918   0162 08 00 00 E7 	CALL puts
-0919   0164 08 00 00 EF 	CALL crlf
-0920   0166 10 00 00 3E 	SET R0, 62				; > cursor
-0921   0168 0C 00       	OUT						; Print cursor
-0922   0169             	
-0923   0169             get_colon:	
-0924   0169             	; zero checksum
-0925   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
-0926   016B             	; get first character 
-0927   016B 0D 00       	IN						; getchar
-0928   016C 11 00 07 80 	SET R1, $780
-0929   016E 41 00       	LD R0, @R1				; get character		
-0930   016F 0B 3A       	SBI 58					; ':' char
-SIMPL_Suite16_2020_5.asm line 0931: Unused data in MS byte of argument. (1)
-0931   0170 05 69       	BNE get_colon
-0932   0171             
-0933   0171             	; READ LENGTH
-0934   0171 08 00 01 DD 	call getbyte
-0935   0173             	; value is in R7
-0936   0173 27 00       	LD R0, R7
-0937   0174 3A 00       	ST R10, R0				; store in R[10]
-0938   0175             	
-0939   0175             	; READ ADDRESS
-0940   0175 08 00 01 EE 	call getword
-0941   0177             	; value is in R7
-0942   0177 27 00       	LD R0, R7
-0943   0178 3B 00       	ST R11, R0				; store in R[11]
-0944   0179             	
-0945   0179             	; READ RECORD TYPE
-0946   0179 08 00 01 DD 	call getbyte
-0947   017B             	; value is in R7
-0948   017B 27 00       	LD R0, R7
-0949   017C 3D 00       	ST R13, R0;				; store in R[13]
-0950   017D             	
-0951   017D             	; R[10] = length in bytes
-0952   017D             	; R[11] = address 
-0953   017D             	; R[13] = record type 
-0954   017D             	
-0955   017D 11 00 00 01 	SET R1, 1				; record type 01
-0956   017F 37 00       	ST R7, R0				; store for later
-0957   0180 B1 00       	SUB R1					; check if type is 01
-SIMPL_Suite16_2020_5.asm line 0958: Unused data in MS byte of argument. (1)
-0958   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
-0959   0182 27 00       	LD R0, R7				; get value back
-SIMPL_Suite16_2020_5.asm line 0960: Unused data in MS byte of argument. (1)
-0960   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
-0961   0184             
-0962   0184             read_data:	
-0963   0184             	; this is a data byte
-0964   0184             msb_part:
-0965   0184 08 00 01 DD 	call getbyte
-0966   0186             	; value is in R7
-0967   0186 27 00       	LD R0, R7				; get byte in R0
-0968   0187 A0 00       	ADD R0					; shift
-0969   0188 A0 00       	ADD R0
-0970   0189 A0 00       	ADD R0
-0971   018A A0 00       	ADD R0
-0972   018B A0 00       	ADD R0
-0973   018C A0 00       	ADD R0
-0974   018D A0 00       	ADD R0
-0975   018E A0 00       	ADD R0
-0976   018F 5B 00       	ST @R11, R0				; store at memory address
-0977   0190             	
-0978   0190             lsb_part:
-0979   0190 08 00 01 DD 	call getbyte
-0980   0192             	; value is in R7
-0981   0192 4B 00       	LD R0, @R11				; get what is in memory
-0982   0193 97 00       	OR R7					; OR lsb into it
-0983   0194 5B 00       	ST @R11, R0				; store at memory address
-0984   0195             	
-0985   0195 EB 00       	INC R11					; next memory address
-0986   0196             	
-0987   0196             	;decrement 2x
-0988   0196 DA 00       	DEC R10					; decrement 
-0989   0197 DA 00       	DEC R10					; decrement 
-0990   0198             	
-0991   0198 2A 00       	LD R0, R10				; get length
-SIMPL_Suite16_2020_5.asm line 0992: Unused data in MS byte of argument. (1)
-0992   0199 01 84       	BGT read_data			; 
-0993   019A             	
-0994   019A             	; GET LAST BYTE
-0995   019A 08 00 01 DD 	call getbyte			; get checksum byte
-0996   019C             	
-0997   019C             	; CHECK CHECKSUM
-0998   019C 2E 00       	LD R0, R14				; get checksum byte
-0999   019D 11 00 00 FF 	SET R1, $00FF
-1000   019F 81 00       	AND R1
-SIMPL_Suite16_2020_5.asm line 1001: Unused data in MS byte of argument. (1)
-1001   01A0 05 C5       	BNE checksum_error
-1002   01A1             	
-1003   01A1 08 00 00 EF 	call crlf
-1004   01A3 10 00 00 3E 	SET R0, 62				; > cursor
-1005   01A5 0C 00       	OUT						; Print cursor
-SIMPL_Suite16_2020_5.asm line 1006: Unused data in MS byte of argument. (1)
-1006   01A6 00 69       	BRA get_colon
-1007   01A7             	
-1008   01A7 07 00 01 CE 	JMP loop				 ; TODO check
-1009   01A9             	
-1010   01A9             invalid:
-1011   01A9 08 00 00 EF 	call crlf
-1012   01AB 11 00 02 6B 	SET R1, invalid_msg
-1013   01AD 08 00 00 E7 	call puts
-1014   01AF 08 00 00 EF 	call crlf
-SIMPL_Suite16_2020_5.asm line 1015: Unused data in MS byte of argument. (1)
-1015   01B1 00 60       	BRA starting_addr
-1016   01B2             	
-1017   01B2             endload:
-1018   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
-1019   01B4             
-1020   01B4 2E 00       	LD R0, R14				; get checksum byte
-1021   01B5 11 00 00 FF 	SET R1, $00FF
-1022   01B7 81 00       	AND R1
-SIMPL_Suite16_2020_5.asm line 1023: Unused data in MS byte of argument. (1)
-1023   01B8 05 C5       	BNE checksum_error
-1024   01B9 08 00 00 EF 	call crlf
-1025   01BB 11 00 02 7F 	SET R1, done_msg
-1026   01BD 08 00 00 E7 	call puts
-1027   01BF 08 00 00 EF 	call crlf
-1028   01C1 08 00 00 EF 	call crlf
-1029   01C3             
-1030   01C3             	; jump to fixed memory location (loaded program)
-1031   01C3             	; loader program has to start at location "program_start" for now
-1032   01C3 07 00 03 00 	JMP program_start
-1033   01C5             	
-1034   01C5             checksum_error:
-1035   01C5 08 00 00 EF 	call crlf
-1036   01C7 11 00 02 5C 	SET R1, error_msg
-1037   01C9 08 00 00 E7 	call puts
-1038   01CB 08 00 00 EF 	call crlf
-SIMPL_Suite16_2020_5.asm line 1039: Unused data in MS byte of argument. (1)
-1039   01CD 00 60       	BRA starting_addr
-1040   01CE             	
-1041   01CE             	; program should never get here !!!
-1042   01CE             loop:
-SIMPL_Suite16_2020_5.asm line 1043: Unused data in MS byte of argument. (1)
-1043   01CE 00 CE       	BRA loop
-1044   01CF             
-1045   01CF             getnibble:
-1046   01CF 0D 00       	IN				; read char from serial in
-1047   01D0 11 00 07 80 	SET R1, $780
-1048   01D2 41 00       	LD R0, @R1		; get character
-1049   01D3 0B 30       	SBI $30		
-1050   01D4 32 00       	ST R2, R0		; save temporary
-1051   01D5 0B 0A       	SBI 10
-SIMPL_Suite16_2020_5.asm line 1052: Unused data in MS byte of argument. (1)
-1052   01D6 02 DA       	BLT decimal
-1053   01D7 22 00       	LD R0, R2		; restore value
-1054   01D8 0B 07       	SBI 7
-SIMPL_Suite16_2020_5.asm line 1055: Unused data in MS byte of argument. (1)
-1055   01D9 00 DB       	BRA hexadecimal
-1056   01DA             decimal:	
-1057   01DA 22 00       	LD R0, R2		; restore value
-1058   01DB             hexadecimal:	
-1059   01DB 37 00       	ST R7, R0		; value is stored in R7
-1060   01DC 09 00       	RET
-1061   01DD             	
+0906   0160             ; Constant definitions
+0907   0160             ;
+0908   0160             loader_start	.equ	$0160		; hexloader starts here
+0909   0160             program_start	.equ	$0300		; hexloader jumps to here when done loading
+0910   0160             eos				.equ	$0000		; end of string
+0911   0160             
+0912   0160             .org	loader_start
+0913   0160             
+0914   0160             starting_addr:
+0915   0160             ; Print a welcome message
+0916   0160 11 00 02 49 	SET R1, hello_msg
+0917   0162 08 00 00 E7 	CALL puts
+0918   0164 08 00 00 EF 	CALL crlf
+0919   0166 10 00 00 3E 	SET R0, 62				; > cursor
+0920   0168 0C 00       	OUT						; Print cursor
+0921   0169             	
+0922   0169             get_colon:	
+0923   0169             	; zero checksum
+0924   0169 1E 00 00 00 	SET R14, 0				; used to hold checksum
+0925   016B             	; get first character 
+0926   016B 0D 00       	IN						; getchar
+0927   016C 11 00 07 80 	SET R1, $780
+0928   016E 41 00       	LD R0, @R1				; get character		
+0929   016F 0B 3A       	SBI 58					; ':' char
+SIMPL_Suite16_2020_5.asm line 0930: Unused data in MS byte of argument. (1)
+0930   0170 05 69       	BNE get_colon
+0931   0171             
+0932   0171             	; READ LENGTH
+0933   0171 08 00 01 DD 	call getbyte
+0934   0173             	; value is in R7
+0935   0173 27 00       	LD R0, R7
+0936   0174 3A 00       	ST R10, R0				; store in R[10]
+0937   0175             	
+0938   0175             	; READ ADDRESS
+0939   0175 08 00 01 EE 	call getword
+0940   0177             	; value is in R7
+0941   0177 27 00       	LD R0, R7
+0942   0178 3B 00       	ST R11, R0				; store in R[11]
+0943   0179             	
+0944   0179             	; READ RECORD TYPE
+0945   0179 08 00 01 DD 	call getbyte
+0946   017B             	; value is in R7
+0947   017B 27 00       	LD R0, R7
+0948   017C 3D 00       	ST R13, R0;				; store in R[13]
+0949   017D             	
+0950   017D             	; R[10] = length in bytes
+0951   017D             	; R[11] = address 
+0952   017D             	; R[13] = record type 
+0953   017D             	
+0954   017D 11 00 00 01 	SET R1, 1				; record type 01
+0955   017F 37 00       	ST R7, R0				; store for later
+0956   0180 B1 00       	SUB R1					; check if type is 01
+SIMPL_Suite16_2020_5.asm line 0957: Unused data in MS byte of argument. (1)
+0957   0181 06 B2       	BEQ endload				; record type is 01 (EOF), we are done_msg
+0958   0182 27 00       	LD R0, R7				; get value back
+SIMPL_Suite16_2020_5.asm line 0959: Unused data in MS byte of argument. (1)
+0959   0183 01 A9       	BGT invalid				; check if greater than zero (and not 01)
+0960   0184             
+0961   0184             read_data:	
+0962   0184             	; this is a data byte
+0963   0184             msb_part:
+0964   0184 08 00 01 DD 	call getbyte
+0965   0186             	; value is in R7
+0966   0186 27 00       	LD R0, R7				; get byte in R0
+0967   0187 A0 00       	ADD R0					; shift
+0968   0188 A0 00       	ADD R0
+0969   0189 A0 00       	ADD R0
+0970   018A A0 00       	ADD R0
+0971   018B A0 00       	ADD R0
+0972   018C A0 00       	ADD R0
+0973   018D A0 00       	ADD R0
+0974   018E A0 00       	ADD R0
+0975   018F 5B 00       	ST @R11, R0				; store at memory address
+0976   0190             	
+0977   0190             lsb_part:
+0978   0190 08 00 01 DD 	call getbyte
+0979   0192             	; value is in R7
+0980   0192 4B 00       	LD R0, @R11				; get what is in memory
+0981   0193 97 00       	OR R7					; OR lsb into it
+0982   0194 5B 00       	ST @R11, R0				; store at memory address
+0983   0195             	
+0984   0195 EB 00       	INC R11					; next memory address
+0985   0196             	
+0986   0196             	;decrement 2x
+0987   0196 DA 00       	DEC R10					; decrement 
+0988   0197 DA 00       	DEC R10					; decrement 
+0989   0198             	
+0990   0198 2A 00       	LD R0, R10				; get length
+SIMPL_Suite16_2020_5.asm line 0991: Unused data in MS byte of argument. (1)
+0991   0199 01 84       	BGT read_data			; 
+0992   019A             	
+0993   019A             	; GET LAST BYTE
+0994   019A 08 00 01 DD 	call getbyte			; get checksum byte
+0995   019C             	
+0996   019C             	; CHECK CHECKSUM
+0997   019C 2E 00       	LD R0, R14				; get checksum byte
+0998   019D 11 00 00 FF 	SET R1, $00FF
+0999   019F 81 00       	AND R1
+SIMPL_Suite16_2020_5.asm line 1000: Unused data in MS byte of argument. (1)
+1000   01A0 05 C5       	BNE checksum_error
+1001   01A1             	
+1002   01A1 08 00 00 EF 	call crlf
+1003   01A3 10 00 00 3E 	SET R0, 62				; > cursor
+1004   01A5 0C 00       	OUT						; Print cursor
+SIMPL_Suite16_2020_5.asm line 1005: Unused data in MS byte of argument. (1)
+1005   01A6 00 69       	BRA get_colon
+1006   01A7             	
+1007   01A7 07 00 01 CE 	JMP loop				 ; TODO check
+1008   01A9             	
+1009   01A9             invalid:
+1010   01A9 08 00 00 EF 	call crlf
+1011   01AB 11 00 02 6B 	SET R1, invalid_msg
+1012   01AD 08 00 00 E7 	call puts
+1013   01AF 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1014: Unused data in MS byte of argument. (1)
+1014   01B1 00 60       	BRA starting_addr
+1015   01B2             	
+1016   01B2             endload:
+1017   01B2 08 00 01 DD 	call getbyte			; get last checksum byte
+1018   01B4             
+1019   01B4 2E 00       	LD R0, R14				; get checksum byte
+1020   01B5 11 00 00 FF 	SET R1, $00FF
+1021   01B7 81 00       	AND R1
+SIMPL_Suite16_2020_5.asm line 1022: Unused data in MS byte of argument. (1)
+1022   01B8 05 C5       	BNE checksum_error
+1023   01B9 08 00 00 EF 	call crlf
+1024   01BB 11 00 02 7F 	SET R1, done_msg
+1025   01BD 08 00 00 E7 	call puts
+1026   01BF 08 00 00 EF 	call crlf
+1027   01C1 08 00 00 EF 	call crlf
+1028   01C3             
+1029   01C3             	; jump to fixed memory location (loaded program)
+1030   01C3             	; loader program has to start at location "program_start" for now
+1031   01C3 07 00 03 00 	JMP program_start
+1032   01C5             	
+1033   01C5             checksum_error:
+1034   01C5 08 00 00 EF 	call crlf
+1035   01C7 11 00 02 5C 	SET R1, error_msg
+1036   01C9 08 00 00 E7 	call puts
+1037   01CB 08 00 00 EF 	call crlf
+SIMPL_Suite16_2020_5.asm line 1038: Unused data in MS byte of argument. (1)
+1038   01CD 00 60       	BRA starting_addr
+1039   01CE             	
+1040   01CE             	; program should never get here !!!
+1041   01CE             loop:
+SIMPL_Suite16_2020_5.asm line 1042: Unused data in MS byte of argument. (1)
+1042   01CE 00 CE       	BRA loop
+1043   01CF             
+1044   01CF             getnibble:
+1045   01CF 0D 00       	IN				; read char from serial in
+1046   01D0 11 00 07 80 	SET R1, $780
+1047   01D2 41 00       	LD R0, @R1		; get character
+1048   01D3 0B 30       	SBI $30		
+1049   01D4 32 00       	ST R2, R0		; save temporary
+1050   01D5 0B 0A       	SBI 10
+SIMPL_Suite16_2020_5.asm line 1051: Unused data in MS byte of argument. (1)
+1051   01D6 02 DA       	BLT decimal
+1052   01D7 22 00       	LD R0, R2		; restore value
+1053   01D8 0B 07       	SBI 7
+SIMPL_Suite16_2020_5.asm line 1054: Unused data in MS byte of argument. (1)
+1054   01D9 00 DB       	BRA hexadecimal
+1055   01DA             decimal:	
+1056   01DA 22 00       	LD R0, R2		; restore value
+1057   01DB             hexadecimal:	
+1058   01DB 37 00       	ST R7, R0		; value is stored in R7
+1059   01DC 09 00       	RET
+1060   01DD             	
+1061   01DD             ;
 1062   01DD             ;
 1063   01DD             ;
-1064   01DD             ;
-1065   01DD             getbyte:
-1066   01DD 08 00 01 CF 	call getnibble
-1067   01DF 27 00       	LD R0, R7
-1068   01E0 A0 00       	ADD R0
-1069   01E1 A0 00       	ADD R0
-1070   01E2 A0 00       	ADD R0
-1071   01E3 A0 00       	ADD R0
-1072   01E4 38 00       	ST R8, R0		; temporary store msb 
-1073   01E5 08 00 01 CF 	call getnibble
-1074   01E7 27 00       	LD R0, R7		; get back lsb
-1075   01E8 98 00       	OR R8			; create word value
-1076   01E9 37 00       	ST R7, R0		; value is stored in R7
-1077   01EA             	
-1078   01EA             	; store byte for checksum
-1079   01EA 2E 00       	LD R0, R14		; load checksum
-1080   01EB A7 00       	ADD R7			; add byte to checksum
-1081   01EC 3E 00       	ST R14, R0
-1082   01ED             	
-1083   01ED 09 00       	RET
-1084   01EE             
-1085   01EE             getword:
-1086   01EE 08 00 01 DD 	call getbyte
-1087   01F0 27 00       	LD R0, R7
-1088   01F1 A0 00       	ADD R0
-1089   01F2 A0 00       	ADD R0
-1090   01F3 A0 00       	ADD R0
-1091   01F4 A0 00       	ADD R0
-1092   01F5 A0 00       	ADD R0
-1093   01F6 A0 00       	ADD R0
-1094   01F7 A0 00       	ADD R0
-1095   01F8 A0 00       	ADD R0
-1096   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
-1097   01FA 08 00 01 DD 	call getbyte
-1098   01FC 27 00       	LD R0, R7		; get back lsb ???
-1099   01FD 99 00       	OR R9
-1100   01FE 37 00       	ST R7, R0
-1101   01FF 09 00       	RET
-1102   0200             	
-1103   0200             ;------------------------------------------Primitive Routines------------------------------------
-1104   0200             
-1105   0200             .org $0200	
-1106   0200             
-1107   0200             ; All primitive address labels begin with an underscore to avaid confusion with mnemonics
-1108   0200             ; The following 34 primitives are single ascii symbols such as $ % & * ( ) etc
-1109   0200             ; _next is a local page trampoline to NEXT
-1110   0200             
-1111   0200             _next:
-1112   0200 07 00 00 47 	JMP NEXT
+1064   01DD             getbyte:
+1065   01DD 08 00 01 CF 	call getnibble
+1066   01DF 27 00       	LD R0, R7
+1067   01E0 A0 00       	ADD R0
+1068   01E1 A0 00       	ADD R0
+1069   01E2 A0 00       	ADD R0
+1070   01E3 A0 00       	ADD R0
+1071   01E4 38 00       	ST R8, R0		; temporary store msb 
+1072   01E5 08 00 01 CF 	call getnibble
+1073   01E7 27 00       	LD R0, R7		; get back lsb
+1074   01E8 98 00       	OR R8			; create word value
+1075   01E9 37 00       	ST R7, R0		; value is stored in R7
+1076   01EA             	
+1077   01EA             	; store byte for checksum
+1078   01EA 2E 00       	LD R0, R14		; load checksum
+1079   01EB A7 00       	ADD R7			; add byte to checksum
+1080   01EC 3E 00       	ST R14, R0
+1081   01ED             	
+1082   01ED 09 00       	RET
+1083   01EE             
+1084   01EE             getword:
+1085   01EE 08 00 01 DD 	call getbyte
+1086   01F0 27 00       	LD R0, R7
+1087   01F1 A0 00       	ADD R0
+1088   01F2 A0 00       	ADD R0
+1089   01F3 A0 00       	ADD R0
+1090   01F4 A0 00       	ADD R0
+1091   01F5 A0 00       	ADD R0
+1092   01F6 A0 00       	ADD R0
+1093   01F7 A0 00       	ADD R0
+1094   01F8 A0 00       	ADD R0
+1095   01F9 39 00       	ST R9, R0		; CHECK IF NEEDED
+1096   01FA 08 00 01 DD 	call getbyte
+1097   01FC 27 00       	LD R0, R7		; get back lsb ???
+1098   01FD 99 00       	OR R9
+1099   01FE 37 00       	ST R7, R0
+1100   01FF 09 00       	RET
+1101   0200             	
+1102   0200             ;------------------------------------------Primitive Routines------------------------------------
+1103   0200             
+1104   0200             .org $0200	
+1105   0200             
+1106   0200             ; All primitive address labels begin with an underscore to avaid confusion with mnemonics
+1107   0200             ; The following 34 primitives are single ascii symbols such as $ % & * ( ) etc
+1108   0200             ; _next is a local page trampoline to NEXT
+1109   0200             
+1110   0200             _next:
+1111   0200 07 00 00 47 	JMP NEXT
+1112   0202             
 1113   0202             
-1114   0202             
-1115   0202             _space:
-SIMPL_Suite16_2020_5.asm line 1116: Unused data in MS byte of argument. (2)
-1116   0202 00 00       	BRA _next
-1117   0203             
-1118   0203             _store:
-SIMPL_Suite16_2020_5.asm line 1119: Unused data in MS byte of argument. (2)
-1119   0203 00 00       	BRA _next
-1120   0204             
-1121   0204             _dup:
-SIMPL_Suite16_2020_5.asm line 1122: Unused data in MS byte of argument. (2)
-1122   0204 00 00       	BRA _next
-1123   0205             
-1124   0205             _lit:
-SIMPL_Suite16_2020_5.asm line 1125: Unused data in MS byte of argument. (2)
-1125   0205 00 00       	BRA _next
-1126   0206             
-1127   0206             _swap:
-SIMPL_Suite16_2020_5.asm line 1128: Unused data in MS byte of argument. (2)
-1128   0206 00 00           BRA _next
-1129   0207             
-1130   0207             _over:
-SIMPL_Suite16_2020_5.asm line 1131: Unused data in MS byte of argument. (2)
-1131   0207 00 00           BRA _next
-1132   0208             
-1133   0208             _and:
-1134   0208 81 00       	AND R1		; AND
-SIMPL_Suite16_2020_5.asm line 1135: Unused data in MS byte of argument. (2)
-1135   0209 00 00           BRA _next
-1136   020A             
-1137   020A             _pop:
-SIMPL_Suite16_2020_5.asm line 1138: Unused data in MS byte of argument. (2)
-1138   020A 00 00           BRA _next
-1139   020B             
-1140   020B             _begin:
-SIMPL_Suite16_2020_5.asm line 1141: Unused data in MS byte of argument. (2)
-1141   020B 00 00           BRA _next
-1142   020C             
-1143   020C             _end:
-SIMPL_Suite16_2020_5.asm line 1144: Unused data in MS byte of argument. (2)
-1144   020C 00 00           BRA _next
-1145   020D             
-1146   020D             _mul:
-SIMPL_Suite16_2020_5.asm line 1147: Unused data in MS byte of argument. (2)
-1147   020D 00 00           BRA _next
-1148   020E             
-1149   020E             _add:
-1150   020E A1 00       	ADD R1    ; ADD
-SIMPL_Suite16_2020_5.asm line 1151: Unused data in MS byte of argument. (2)
-1151   020F 00 00           BRA _next
-1152   0210             
-1153   0210             _push:
-SIMPL_Suite16_2020_5.asm line 1154: Unused data in MS byte of argument. (2)
-1154   0210 00 00           BRA _next
-1155   0211             
-1156   0211             _sub:
-1157   0211 B1 00       	SUB R1    ; SUB
-SIMPL_Suite16_2020_5.asm line 1158: Unused data in MS byte of argument. (2)
-1158   0212 00 00           BRA _next
-1159   0213             
-1160   0213             _print:
-SIMPL_Suite16_2020_5.asm line 1161: Unused data in MS byte of argument. (2)
-1161   0213 00 00           BRA _next
-1162   0214             
-1163   0214             _div:
-SIMPL_Suite16_2020_5.asm line 1164: Unused data in MS byte of argument. (2)
-1164   0214 00 00           BRA _next
-1165   0215             
-1166   0215             _call:
-SIMPL_Suite16_2020_5.asm line 1167: Unused data in MS byte of argument. (2)
-1167   0215 00 00           BRA _next
-1168   0216             
-1169   0216             _ret:
-SIMPL_Suite16_2020_5.asm line 1170: Unused data in MS byte of argument. (2)
-1170   0216 00 00           BRA _next
-1171   0217             
-1172   0217             _less:
-SIMPL_Suite16_2020_5.asm line 1173: Unused data in MS byte of argument. (2)
-1173   0217 00 00           BRA _next
-1174   0218             
-1175   0218             _eq:
-SIMPL_Suite16_2020_5.asm line 1176: Unused data in MS byte of argument. (2)
-1176   0218 00 00           BRA _next
-1177   0219             
-1178   0219             _greater:
-SIMPL_Suite16_2020_5.asm line 1179: Unused data in MS byte of argument. (2)
-1179   0219 00 00           BRA _next
-1180   021A             
-1181   021A             _query:
-SIMPL_Suite16_2020_5.asm line 1182: Unused data in MS byte of argument. (2)
-1182   021A 00 00           BRA _next
-1183   021B             
-1184   021B             _fetch:
-SIMPL_Suite16_2020_5.asm line 1185: Unused data in MS byte of argument. (2)
-1185   021B 00 00           BRA _next
-1186   021C             
-1187   021C             _in:
-SIMPL_Suite16_2020_5.asm line 1188: Unused data in MS byte of argument. (2)
-1188   021C 00 00           BRA _next
-1189   021D             
-1190   021D             _back:
-SIMPL_Suite16_2020_5.asm line 1191: Unused data in MS byte of argument. (2)
-1191   021D 00 00           BRA _next
-1192   021E             
-1193   021E             _out:
-SIMPL_Suite16_2020_5.asm line 1194: Unused data in MS byte of argument. (2)
-1194   021E 00 00           BRA _next
-1195   021F             
-1196   021F             _xor:
-1197   021F F1 00       	XOR R1		; XOR
-SIMPL_Suite16_2020_5.asm line 1198: Unused data in MS byte of argument. (2)
-1198   0220 00 00           BRA _next
-1199   0221             
-1200   0221             _under:
-SIMPL_Suite16_2020_5.asm line 1201: Unused data in MS byte of argument. (2)
-1201   0221 00 00           BRA _next
-1202   0222             
-1203   0222             _tick:
-SIMPL_Suite16_2020_5.asm line 1204: Unused data in MS byte of argument. (2)
-1204   0222 00 00           BRA _next
-1205   0223             
-1206   0223             _tor:
-SIMPL_Suite16_2020_5.asm line 1207: Unused data in MS byte of argument. (2)
-1207   0223 00 00           BRA _next
-1208   0224             
-1209   0224             _or:
-1210   0224 91 00       	OR R1		; OR
-SIMPL_Suite16_2020_5.asm line 1211: Unused data in MS byte of argument. (2)
-1211   0225 00 00           BRA _next
-1212   0226             
-1213   0226             _fror:
-SIMPL_Suite16_2020_5.asm line 1214: Unused data in MS byte of argument. (2)
-1214   0226 00 00           BRA _next
-1215   0227             
-1216   0227             _inv:
-1217   0227 C0 00       	INV  R0		; INV
-SIMPL_Suite16_2020_5.asm line 1218: Unused data in MS byte of argument. (2)
-1218   0228 00 00           BRA _next
-1219   0229             
-1220   0229             _nop:
-1221   0229 0F 00       	NOP
-SIMPL_Suite16_2020_5.asm line 1222: Unused data in MS byte of argument. (2)
-1222   022A 00 00           BRA _next
-1223   022B             
-1224   022B             	
-1225   022B             	;---------------------------------------Arithmetic & Logic-----------------------------------
-1226   022B             
-1227   022B             _inc:
-1228   022B E0 00             INC  R0   ; INC
-1229   022C 00 47             BRA NEXT
-1230   022D             _dec:	  
-1231   022D D0 00             DEC  R0   ; DEC
-1232   022E 00 47             BRA NEXT
-1233   022F             	  
-1234   022F             	; Arithmetic and logic operations  4 instructions  
-1235   022F             ;----------------------------------------------------------------------------------------------------------	
-1236   022F             
-1237   022F             _a:
-1238   022F             	
-SIMPL_Suite16_2020_5.asm line 1239: Unused data in MS byte of argument. (2)
-1239   022F 00 00       		BRA _next
-1240   0230             
-1241   0230             _b:
-1242   0230             	
-SIMPL_Suite16_2020_5.asm line 1243: Unused data in MS byte of argument. (2)
-1243   0230 00 00       		BRA  _next
-1244   0231             
-1245   0231             _c:
-1246   0231             
-SIMPL_Suite16_2020_5.asm line 1247: Unused data in MS byte of argument. (2)
-1247   0231 00 00       		BRA  _next
-1248   0232             
-1249   0232             _d:
-1250   0232             	
-SIMPL_Suite16_2020_5.asm line 1251: Unused data in MS byte of argument. (2)
-1251   0232 00 00       		BRA  _next
-1252   0233             
-1253   0233             _e:
-1254   0233             	
-SIMPL_Suite16_2020_5.asm line 1255: Unused data in MS byte of argument. (2)
-1255   0233 00 00       		BRA  _next
-1256   0234             
-1257   0234             _f:
-1258   0234             	
-SIMPL_Suite16_2020_5.asm line 1259: Unused data in MS byte of argument. (2)
-1259   0234 00 00       		BRA  _next
-1260   0235             
-1261   0235             _g:
-1262   0235             	
-SIMPL_Suite16_2020_5.asm line 1263: Unused data in MS byte of argument. (2)
-1263   0235 00 00       		BRA  _next
-1264   0236             
-1265   0236             _h:
-1266   0236             	
-SIMPL_Suite16_2020_5.asm line 1267: Unused data in MS byte of argument. (2)
-1267   0236 00 00       		BRA  _next			
-1268   0237             
-1269   0237             _i:
-1270   0237             	
-SIMPL_Suite16_2020_5.asm line 1271: Unused data in MS byte of argument. (2)
-1271   0237 00 00       		BRA  _next
-1272   0238             
-1273   0238             _j:
-1274   0238             	
-SIMPL_Suite16_2020_5.asm line 1275: Unused data in MS byte of argument. (2)
-1275   0238 00 00       		BRA  _next
-1276   0239             
-1277   0239             _k:
-1278   0239             	
-SIMPL_Suite16_2020_5.asm line 1279: Unused data in MS byte of argument. (2)
-1279   0239 00 00       		BRA  _next
-1280   023A             
-1281   023A             _l:
-1282   023A             	
-SIMPL_Suite16_2020_5.asm line 1283: Unused data in MS byte of argument. (2)
-1283   023A 00 00       		BRA  _next
-1284   023B             
-1285   023B             _m:
-1286   023B             	
-SIMPL_Suite16_2020_5.asm line 1287: Unused data in MS byte of argument. (2)
-1287   023B 00 00       		BRA  _next
-1288   023C             
-1289   023C             _n:
-1290   023C             	
-SIMPL_Suite16_2020_5.asm line 1291: Unused data in MS byte of argument. (2)
-1291   023C 00 00       		BRA  _next
-1292   023D             
-1293   023D             _o:
-1294   023D             	
-SIMPL_Suite16_2020_5.asm line 1295: Unused data in MS byte of argument. (2)
-1295   023D 00 00       		BRA  _next
-1296   023E             
-1297   023E             _p:
-1298   023E             	
-SIMPL_Suite16_2020_5.asm line 1299: Unused data in MS byte of argument. (2)
-1299   023E 00 00       		BRA  _next	
-1300   023F             
-1301   023F             _q:
-1302   023F             	
-SIMPL_Suite16_2020_5.asm line 1303: Unused data in MS byte of argument. (2)
-1303   023F 00 00       		BRA  _next
-1304   0240             
-1305   0240             _r:
-1306   0240             	
-SIMPL_Suite16_2020_5.asm line 1307: Unused data in MS byte of argument. (2)
-1307   0240 00 00       		BRA  _next
-1308   0241             
-1309   0241             _s:
-1310   0241             	
-SIMPL_Suite16_2020_5.asm line 1311: Unused data in MS byte of argument. (2)
-1311   0241 00 00       		BRA  _next
-1312   0242             
-1313   0242             _t:
-1314   0242             	
-SIMPL_Suite16_2020_5.asm line 1315: Unused data in MS byte of argument. (2)
-1315   0242 00 00       		BRA  _next
-1316   0243             
-1317   0243             _u:
-1318   0243             	
-SIMPL_Suite16_2020_5.asm line 1319: Unused data in MS byte of argument. (2)
-1319   0243 00 00       		BRA  _next
-1320   0244             
-1321   0244             _v:
-1322   0244             	
-SIMPL_Suite16_2020_5.asm line 1323: Unused data in MS byte of argument. (2)
-1323   0244 00 00       		BRA  _next
-1324   0245             
-1325   0245             _w:
-1326   0245             	
-SIMPL_Suite16_2020_5.asm line 1327: Unused data in MS byte of argument. (2)
-1327   0245 00 00       		BRA  _next
-1328   0246             
-1329   0246             _x:
-1330   0246             	
-SIMPL_Suite16_2020_5.asm line 1331: Unused data in MS byte of argument. (2)
-1331   0246 00 00       		BRA  _next
-1332   0247             
-1333   0247             _y:
-1334   0247             	
-SIMPL_Suite16_2020_5.asm line 1335: Unused data in MS byte of argument. (2)
-1335   0247 00 00       		BRA  _next
-1336   0248             
-1337   0248             _z:
-1338   0248             	
-SIMPL_Suite16_2020_5.asm line 1339: Unused data in MS byte of argument. (2)
-1339   0248 00 00       		BRA  _next
-1340   0249             		
+1114   0202             _space:
+SIMPL_Suite16_2020_5.asm line 1115: Unused data in MS byte of argument. (2)
+1115   0202 00 00       	BRA _next
+1116   0203             
+1117   0203             _store:
+SIMPL_Suite16_2020_5.asm line 1118: Unused data in MS byte of argument. (2)
+1118   0203 00 00       	BRA _next
+1119   0204             
+1120   0204             _dup:
+SIMPL_Suite16_2020_5.asm line 1121: Unused data in MS byte of argument. (2)
+1121   0204 00 00       	BRA _next
+1122   0205             
+1123   0205             _lit:
+SIMPL_Suite16_2020_5.asm line 1124: Unused data in MS byte of argument. (2)
+1124   0205 00 00       	BRA _next
+1125   0206             
+1126   0206             _swap:
+SIMPL_Suite16_2020_5.asm line 1127: Unused data in MS byte of argument. (2)
+1127   0206 00 00           BRA _next
+1128   0207             
+1129   0207             _over:
+SIMPL_Suite16_2020_5.asm line 1130: Unused data in MS byte of argument. (2)
+1130   0207 00 00           BRA _next
+1131   0208             
+1132   0208             _and:
+1133   0208 81 00       	AND R1		; AND
+SIMPL_Suite16_2020_5.asm line 1134: Unused data in MS byte of argument. (2)
+1134   0209 00 00           BRA _next
+1135   020A             
+1136   020A             _pop:
+SIMPL_Suite16_2020_5.asm line 1137: Unused data in MS byte of argument. (2)
+1137   020A 00 00           BRA _next
+1138   020B             
+1139   020B             _begin:
+SIMPL_Suite16_2020_5.asm line 1140: Unused data in MS byte of argument. (2)
+1140   020B 00 00           BRA _next
+1141   020C             
+1142   020C             _end:
+SIMPL_Suite16_2020_5.asm line 1143: Unused data in MS byte of argument. (2)
+1143   020C 00 00           BRA _next
+1144   020D             
+1145   020D             _mul:
+SIMPL_Suite16_2020_5.asm line 1146: Unused data in MS byte of argument. (2)
+1146   020D 00 00           BRA _next
+1147   020E             
+1148   020E             _add:
+1149   020E A1 00       	ADD R1    ; ADD
+SIMPL_Suite16_2020_5.asm line 1150: Unused data in MS byte of argument. (2)
+1150   020F 00 00           BRA _next
+1151   0210             
+1152   0210             _push:
+SIMPL_Suite16_2020_5.asm line 1153: Unused data in MS byte of argument. (2)
+1153   0210 00 00           BRA _next
+1154   0211             
+1155   0211             _sub:
+1156   0211 B1 00       	SUB R1    ; SUB
+SIMPL_Suite16_2020_5.asm line 1157: Unused data in MS byte of argument. (2)
+1157   0212 00 00           BRA _next
+1158   0213             
+1159   0213             _print:
+SIMPL_Suite16_2020_5.asm line 1160: Unused data in MS byte of argument. (2)
+1160   0213 00 00           BRA _next
+1161   0214             
+1162   0214             _div:
+SIMPL_Suite16_2020_5.asm line 1163: Unused data in MS byte of argument. (2)
+1163   0214 00 00           BRA _next
+1164   0215             
+1165   0215             _call:
+SIMPL_Suite16_2020_5.asm line 1166: Unused data in MS byte of argument. (2)
+1166   0215 00 00           BRA _next
+1167   0216             
+1168   0216             _ret:
+SIMPL_Suite16_2020_5.asm line 1169: Unused data in MS byte of argument. (2)
+1169   0216 00 00           BRA _next
+1170   0217             
+1171   0217             _less:
+SIMPL_Suite16_2020_5.asm line 1172: Unused data in MS byte of argument. (2)
+1172   0217 00 00           BRA _next
+1173   0218             
+1174   0218             _eq:
+SIMPL_Suite16_2020_5.asm line 1175: Unused data in MS byte of argument. (2)
+1175   0218 00 00           BRA _next
+1176   0219             
+1177   0219             _greater:
+SIMPL_Suite16_2020_5.asm line 1178: Unused data in MS byte of argument. (2)
+1178   0219 00 00           BRA _next
+1179   021A             
+1180   021A             _query:
+SIMPL_Suite16_2020_5.asm line 1181: Unused data in MS byte of argument. (2)
+1181   021A 00 00           BRA _next
+1182   021B             
+1183   021B             _fetch:
+SIMPL_Suite16_2020_5.asm line 1184: Unused data in MS byte of argument. (2)
+1184   021B 00 00           BRA _next
+1185   021C             
+1186   021C             _in:
+SIMPL_Suite16_2020_5.asm line 1187: Unused data in MS byte of argument. (2)
+1187   021C 00 00           BRA _next
+1188   021D             
+1189   021D             _back:
+SIMPL_Suite16_2020_5.asm line 1190: Unused data in MS byte of argument. (2)
+1190   021D 00 00           BRA _next
+1191   021E             
+1192   021E             _out:
+SIMPL_Suite16_2020_5.asm line 1193: Unused data in MS byte of argument. (2)
+1193   021E 00 00           BRA _next
+1194   021F             
+1195   021F             _xor:
+1196   021F F1 00       	XOR R1		; XOR
+SIMPL_Suite16_2020_5.asm line 1197: Unused data in MS byte of argument. (2)
+1197   0220 00 00           BRA _next
+1198   0221             
+1199   0221             _under:
+SIMPL_Suite16_2020_5.asm line 1200: Unused data in MS byte of argument. (2)
+1200   0221 00 00           BRA _next
+1201   0222             
+1202   0222             _tick:
+SIMPL_Suite16_2020_5.asm line 1203: Unused data in MS byte of argument. (2)
+1203   0222 00 00           BRA _next
+1204   0223             
+1205   0223             _tor:
+SIMPL_Suite16_2020_5.asm line 1206: Unused data in MS byte of argument. (2)
+1206   0223 00 00           BRA _next
+1207   0224             
+1208   0224             _or:
+1209   0224 91 00       	OR R1		; OR
+SIMPL_Suite16_2020_5.asm line 1210: Unused data in MS byte of argument. (2)
+1210   0225 00 00           BRA _next
+1211   0226             
+1212   0226             _fror:
+SIMPL_Suite16_2020_5.asm line 1213: Unused data in MS byte of argument. (2)
+1213   0226 00 00           BRA _next
+1214   0227             
+1215   0227             _inv:
+1216   0227 C0 00       	INV  R0		; INV
+SIMPL_Suite16_2020_5.asm line 1217: Unused data in MS byte of argument. (2)
+1217   0228 00 00           BRA _next
+1218   0229             
+1219   0229             _nop:
+1220   0229 0F 00       	NOP
+SIMPL_Suite16_2020_5.asm line 1221: Unused data in MS byte of argument. (2)
+1221   022A 00 00           BRA _next
+1222   022B             
+1223   022B             	
+1224   022B             	;---------------------------------------Arithmetic & Logic-----------------------------------
+1225   022B             
+1226   022B             _inc:
+1227   022B E0 00             INC  R0   ; INC
+1228   022C 00 47             BRA NEXT
+1229   022D             _dec:	  
+1230   022D D0 00             DEC  R0   ; DEC
+1231   022E 00 47             BRA NEXT
+1232   022F             	  
+1233   022F             	; Arithmetic and logic operations  4 instructions  
+1234   022F             ;----------------------------------------------------------------------------------------------------------	
+1235   022F             
+1236   022F             _a:
+1237   022F             	
+SIMPL_Suite16_2020_5.asm line 1238: Unused data in MS byte of argument. (2)
+1238   022F 00 00       		BRA _next
+1239   0230             
+1240   0230             _b:
+1241   0230             	
+SIMPL_Suite16_2020_5.asm line 1242: Unused data in MS byte of argument. (2)
+1242   0230 00 00       		BRA  _next
+1243   0231             
+1244   0231             _c:
+1245   0231             
+SIMPL_Suite16_2020_5.asm line 1246: Unused data in MS byte of argument. (2)
+1246   0231 00 00       		BRA  _next
+1247   0232             
+1248   0232             _d:
+1249   0232             	
+SIMPL_Suite16_2020_5.asm line 1250: Unused data in MS byte of argument. (2)
+1250   0232 00 00       		BRA  _next
+1251   0233             
+1252   0233             _e:
+1253   0233             	
+SIMPL_Suite16_2020_5.asm line 1254: Unused data in MS byte of argument. (2)
+1254   0233 00 00       		BRA  _next
+1255   0234             
+1256   0234             _f:
+1257   0234             	
+SIMPL_Suite16_2020_5.asm line 1258: Unused data in MS byte of argument. (2)
+1258   0234 00 00       		BRA  _next
+1259   0235             
+1260   0235             _g:
+1261   0235             	
+SIMPL_Suite16_2020_5.asm line 1262: Unused data in MS byte of argument. (2)
+1262   0235 00 00       		BRA  _next
+1263   0236             
+1264   0236             _h:
+1265   0236             	
+SIMPL_Suite16_2020_5.asm line 1266: Unused data in MS byte of argument. (2)
+1266   0236 00 00       		BRA  _next			
+1267   0237             
+1268   0237             _i:
+1269   0237             	
+SIMPL_Suite16_2020_5.asm line 1270: Unused data in MS byte of argument. (2)
+1270   0237 00 00       		BRA  _next
+1271   0238             
+1272   0238             _j:
+1273   0238             	
+SIMPL_Suite16_2020_5.asm line 1274: Unused data in MS byte of argument. (2)
+1274   0238 00 00       		BRA  _next
+1275   0239             
+1276   0239             _k:
+1277   0239             	
+SIMPL_Suite16_2020_5.asm line 1278: Unused data in MS byte of argument. (2)
+1278   0239 00 00       		BRA  _next
+1279   023A             
+1280   023A             _l:
+1281   023A             	
+SIMPL_Suite16_2020_5.asm line 1282: Unused data in MS byte of argument. (2)
+1282   023A 00 00       		BRA  _next
+1283   023B             
+1284   023B             _m:
+1285   023B             	
+SIMPL_Suite16_2020_5.asm line 1286: Unused data in MS byte of argument. (2)
+1286   023B 00 00       		BRA  _next
+1287   023C             
+1288   023C             _n:
+1289   023C             	
+SIMPL_Suite16_2020_5.asm line 1290: Unused data in MS byte of argument. (2)
+1290   023C 00 00       		BRA  _next
+1291   023D             
+1292   023D             _o:
+1293   023D             	
+SIMPL_Suite16_2020_5.asm line 1294: Unused data in MS byte of argument. (2)
+1294   023D 00 00       		BRA  _next
+1295   023E             
+1296   023E             _p:
+1297   023E             	
+SIMPL_Suite16_2020_5.asm line 1298: Unused data in MS byte of argument. (2)
+1298   023E 00 00       		BRA  _next	
+1299   023F             
+1300   023F             _q:
+1301   023F             	
+SIMPL_Suite16_2020_5.asm line 1302: Unused data in MS byte of argument. (2)
+1302   023F 00 00       		BRA  _next
+1303   0240             
+1304   0240             _r:
+1305   0240             	
+SIMPL_Suite16_2020_5.asm line 1306: Unused data in MS byte of argument. (2)
+1306   0240 00 00       		BRA  _next
+1307   0241             
+1308   0241             _s:
+1309   0241             	
+SIMPL_Suite16_2020_5.asm line 1310: Unused data in MS byte of argument. (2)
+1310   0241 00 00       		BRA  _next
+1311   0242             
+1312   0242             _t:
+1313   0242             	
+SIMPL_Suite16_2020_5.asm line 1314: Unused data in MS byte of argument. (2)
+1314   0242 00 00       		BRA  _next
+1315   0243             
+1316   0243             _u:
+1317   0243             	
+SIMPL_Suite16_2020_5.asm line 1318: Unused data in MS byte of argument. (2)
+1318   0243 00 00       		BRA  _next
+1319   0244             
+1320   0244             _v:
+1321   0244             	
+SIMPL_Suite16_2020_5.asm line 1322: Unused data in MS byte of argument. (2)
+1322   0244 00 00       		BRA  _next
+1323   0245             
+1324   0245             _w:
+1325   0245             	
+SIMPL_Suite16_2020_5.asm line 1326: Unused data in MS byte of argument. (2)
+1326   0245 00 00       		BRA  _next
+1327   0246             
+1328   0246             _x:
+1329   0246             	
+SIMPL_Suite16_2020_5.asm line 1330: Unused data in MS byte of argument. (2)
+1330   0246 00 00       		BRA  _next
+1331   0247             
+1332   0247             _y:
+1333   0247             	
+SIMPL_Suite16_2020_5.asm line 1334: Unused data in MS byte of argument. (2)
+1334   0247 00 00       		BRA  _next
+1335   0248             
+1336   0248             _z:
+1337   0248             	
+SIMPL_Suite16_2020_5.asm line 1338: Unused data in MS byte of argument. (2)
+1338   0248 00 00       		BRA  _next
+1339   0249             		
+1340   0249             
 1341   0249             
-1342   0249             
-1343   0249             		
-1344   0249             ;--------------------------------------------------------------------------------------------------------------------------
-1345   0249             		
-1346   0249             ; Message definitions
-1347   0249             ;
-1348   0249             .MSFIRST
-1349   0249 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
-1349   024B 00 69 00 74 
-1349   024D 00 65 00 31 
-1349   024F 00 36 00 20 
-1349   0251 00 48 00 65 
-1349   0253 00 78 00 20 
-1349   0255 00 4C 00 6F 
-1349   0257 00 61 00 64 
-1349   0259 00 65 00 72 
-1349   025B 00 00 
-1350   025C 00 43 00 68 error_msg		.WORD	"Checksum error", eos
-1350   025E 00 65 00 63 
-1350   0260 00 6B 00 73 
-1350   0262 00 75 00 6D 
-1350   0264 00 20 00 65 
-1350   0266 00 72 00 72 
-1350   0268 00 6F 00 72 
-1350   026A 00 00 
-1351   026B 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
-1351   026D 00 76 00 61 
-1351   026F 00 6C 00 69 
-1351   0271 00 64 00 20 
-1351   0273 00 72 00 65 
-1351   0275 00 63 00 6F 
-1351   0277 00 72 00 64 
-1351   0279 00 20 00 74 
-1351   027B 00 79 00 70 
-1351   027D 00 65 00 00 
-1352   027F 00 44 00 6F done_msg		.WORD	"Done loading", eos
-1352   0281 00 6E 00 65 
-1352   0283 00 20 00 6C 
-1352   0285 00 6F 00 61 
-1352   0287 00 64 00 69 
-1352   0289 00 6E 00 67 
-1352   028B 00 00 
-1353   028C             
-1354   028C             ;
-1355   028C             ; 
-1356   028C             ;
-1357   028C             	
-1358   028C             .MSFIRST
-1359   028C 00 0D       cr				.WORD $0d	; carriage return
-1360   028D 00 0A       lf				.WORD $0a	; line feed
-1361   028E 00 20       space			.WORD $20	; space
-1362   028F             .end	
+1342   0249             		
+1343   0249             ;--------------------------------------------------------------------------------------------------------------------------
+1344   0249             		
+1345   0249             ; Message definitions
+1346   0249             ;
+1347   0249             .MSFIRST
+1348   0249 00 53 00 75 hello_msg		.WORD	"Suite16 Hex Loader", eos
+1348   024B 00 69 00 74 
+1348   024D 00 65 00 31 
+1348   024F 00 36 00 20 
+1348   0251 00 48 00 65 
+1348   0253 00 78 00 20 
+1348   0255 00 4C 00 6F 
+1348   0257 00 61 00 64 
+1348   0259 00 65 00 72 
+1348   025B 00 00 
+1349   025C 00 43 00 68 error_msg		.WORD	"Checksum error", eos
+1349   025E 00 65 00 63 
+1349   0260 00 6B 00 73 
+1349   0262 00 75 00 6D 
+1349   0264 00 20 00 65 
+1349   0266 00 72 00 72 
+1349   0268 00 6F 00 72 
+1349   026A 00 00 
+1350   026B 00 49 00 6E invalid_msg		.WORD	"Invalid record type", eos
+1350   026D 00 76 00 61 
+1350   026F 00 6C 00 69 
+1350   0271 00 64 00 20 
+1350   0273 00 72 00 65 
+1350   0275 00 63 00 6F 
+1350   0277 00 72 00 64 
+1350   0279 00 20 00 74 
+1350   027B 00 79 00 70 
+1350   027D 00 65 00 00 
+1351   027F 00 44 00 6F done_msg		.WORD	"Done loading", eos
+1351   0281 00 6E 00 65 
+1351   0283 00 20 00 6C 
+1351   0285 00 6F 00 61 
+1351   0287 00 64 00 69 
+1351   0289 00 6E 00 67 
+1351   028B 00 00 
+1352   028C             
+1353   028C             ;
+1354   028C             ; 
+1355   028C             ;
+1356   028C             	
+1357   028C             .MSFIRST
+1358   028C 00 0D       cr				.WORD $0d	; carriage return
+1359   028D 00 0A       lf				.WORD $0a	; line feed
+1360   028E 00 20       space			.WORD $20	; space
+1361   028F             .end	
 ADDR  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 -----------------------------------------------------
 0000  00 72 18 00 07 80 E8 00 48 00 34 00 0B 0D 06 25
