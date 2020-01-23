@@ -903,7 +903,6 @@ crlf:					; Output a CR/LF pair
 
 ;-----------------------------------------Hex_Loader-----------------------------------------
 
-; To assemble use : tasm -s -h -c -g0 -t16 hexloader_new_3.asm out.hex
 ; Constant definitions
 ;
 loader_start	.equ	$0160		; hexloader starts here
