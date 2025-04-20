@@ -1,0 +1,50 @@
+unsigned long count=0;int A=0 ;int PC=0x20;int i=0 ;int ir=0 ;int fn=0 ;int reg=0 ;int data=0 ;int IR = 0 ;
+void setup() {  Serial.begin(115200); }
+void loop() {  fetch() ; execute() ;  } 
+void fetch() { Serial.println(); IR = M[PC] ; if (PC < 4096) { Serial.print("0");} if (PC < 256) { Serial.print("0");} if (PC < 16) { Serial.print("0");}     Serial.print(PC, HEX); Serial.print("  "); 
+   if (M[PC] < 4096) { Serial.print("0");} if (M[PC] < 256) { Serial.print("0");} if (M[PC] < 16) { Serial.print("0");}  Serial.print(M[PC], HEX); 
+   fn = ((M[PC] & 0xFF00)/ 256); reg = ((M[PC] & 0xFF00)/ 4096);
+Serial.print("  ");  PC ++ ;  PC &= (MEMSIZE-1) ; } 
+void execute(){  
+  unsigned int op = IR >> 12 ;   unsigned int n  = (IR & 0xf00) >> 8 ; // op = IR 15:12      Opcode  // n = IR 11:8        Register or Condition
+  int addr = IR & 0x0ff ;                 // addr = IR 7:0      Address or Displacement
+      switch (op) {                       // Opcode Execute 
+    case 0x0:   break ; 
+    case 0x1:   M[n]= M[PC] ; PC++  ; break ;  // SET   
+    case 0x2:   M[0] = M[n]         ; break ;  // LD 
+    case 0x3:   M[n] = M[0]         ; break ;  // ST 
+    case 0x4:   M[0] = M[M[n]]      ; break ;  // LD@ 
+    case 0x5:   M[M[n]] = M[0]      ; break ;  // ST@ 
+    case 0x6:   M[0] = M[M[n]]      ; M[n]= M[n]+1   ;  break ; // POP with post-increment of pointer Rn  
+    case 0x7:   M[n]= M[n]-1        ; M[M[n]] = M[0] ;  break ; // PSH with pre-decrement of pointer Rn 
+    case 0x8:   M[0] &= M[n]        ; break ;  // AND 
+    case 0x9:   M[0] |= M[n]        ; break ;  // OR 
+    case 0xA:   M[0] += M[n]        ; break ;  // ADD     
+    case 0xB:   M[0] -= M[n]        ; break ;  // SUB 
+    case 0xC:   M[n] = ~M[n]        ; break ;  // INV 
+    case 0xD:   M[n] =  M[n]-1      ; break ;  // DEC 
+    case 0xE:   M[n] =  M[n]+1      ; break ;  // INC 
+    case 0xF:   M[0] ^= M[n]        ; break ;  // XOR   }
+    A = M[0] ;          // Conditional Branches and I/O Group 
+    if (op == 0) {      // do an unconditional jump back to enclosed address
+switch (n) {
+       case 0x0:  PC = addr ;              break ;   // BRA Branch Always
+       case 0x1:  if(A>0)  { PC = addr ; } break ;   // BGT Branch if Greater
+       case 0x2:  if(A<0)  { PC = addr ; } break ;   // BLT Branch if Less Than
+       case 0x3:  if(A>=0) { PC = addr ; } break ;   // BGE Branch if Greater or Equal
+       case 0x4:  if(A<=0) { PC = addr ; } break ;   // BLE Branch if Less Than or Equal
+       case 0x5:  if(A!=0) { PC = addr ; } break ;   // BNE Branch if Not Equal to zero
+       case 0x6:  if(A==0) { PC = addr ; } break ;   // BEQ Branch if Equal to zero
+       case 0x7:  PC++ ; addr = M[PC] ;  PC = addr ; break ;  // 16-bit JMP
+       case 0x8:  M[15]= M[15]-1 ; M[M[15]] = PC ; PC = addr ; break ;   // CALL (zero page) use R15 as Return Stack Pointer 
+       case 0x9:  PC = M[M[15]]      ; M[15]= M[15]+1   ; break ;        // RET
+       case 0xA:  M[0]= M[0] + addr ; break ;        // ADI add the immediate 8-bit contained in the address field
+       case 0xB:  M[0]= M[0] - addr ; break ;        // SBI subtract the immediate 8-bit contained in the address field
+       case 0xC:  Serial.write(M[0]) ; if( 0<=(M[0]<= 126)){ Serial.print("  ");} break; OUT-PUTCHAR to the Serial port
+       case 0xD:  i =0 ; while (i < (63)) {          // GETCHAR - get '0' terminated character string into buffer
+                  while (!Serial.available()); char ch = Serial.read(); if (ch == '\r' || ch == '\n') break;
+                  if (ch >= ' ' && ch <= '~') {  M[512 + i] = ch;  i++;  } } M[512+i] = '\n' ; M[512+1+i] =   0 ;  break ; // Terminate the buffer with zero            
+       case 0xE:  PC = M[0] ; M[0]= M[PC] ; break ;  // JMP @R0   - useful for indexing and table look-up ( curious but useful pipeline effect here)
+       case 0xF:  break ; M[0] &= M[0] ; // NOP   AND accumulator with itself    
+       }  
+//*****************************************************************************************************************
