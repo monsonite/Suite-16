@@ -1,0 +1,88 @@
+/* stable.c  interpreter: ver: 01.sep.2016 by Sandor Schneider Modified Ken Boak April 21st 2025 */
+
+#include <stdio.h>
+static int  i,v,m,r,p=0,n,mx,s,f,st[2000]; 
+static char t=0,c,u,a,k=0,pr[2000];
+
+N(){;} 
+
+//******************************************************************************************
+// ALU OPs
+f37(){st[s-1]%=st[s]; s--; }													// MOD %
+f38(){st[s-1]&=st[s]; s--; }													// AND &
+f95(){st[s]=-st[s]; }															// NEG _
+f126(){st[s]=  ~st[s]; }														// INV ~
+f124(){st[s-1]|=st[s]; s--; }													// OR |
+f94(){st[s-1]^=st[s]; s--; }													// XOR ^
+f42(){st[s-1]*=st[s]; s--; }													// MUL *
+f47(){st[s-1]/=st[s]; s--;} 													// DIV /
+f43(){ if(k==0){st[s-1]+=st[s]; s--; }else{st[v]++;} }							// ADD/INC +
+f45(){ if(k==0){st[s-1]-=st[s]; s--; }else{st[v]--;} }							// SUB/DEC -
+
+//******************************************************************************************
+f9(){i=0;while((u>='0')&&(u<='9')){i=i*10+u-'0';p++;u=pr[p];}s++;st[s]=i;p--;}  // NUM 9 - Evaluate a decimal number
+
+//******************************************************************************************
+// Comparisons 
+f60(){if(st[s]> st[s-1]){st[s]=-1;}else{st[s]=0;}}								// GT <
+f61(){if(st[s]==st[s-1]){st[s]=-1;}else {st[s]=0;}}								// EQ =
+f62(){if(st[s]< st[s-1]){st[s]=-1;}else{st[s]=0;}}								// LT >
+
+//******************************************************************************************
+
+f39(){p++;u=pr[p];while(u!='\''){s++;st[s]=u;p++;u=pr[p];}}						// '
+f40(){if(st[s]==0){s--;p++;u=pr[p];while(u!=')'){p++;u=pr[p];}} else{s--;}}		// ( skip if false until ) Begin loop
+f34(){p++;u=pr[p];while(u!='\"'){putc(u,stdout);p++;u=pr[p];}}                  // Print String
+
+//******************************************************************************************
+// Stack Ops
+f34(){s++; st[s]=st[s-1];}														// DUP "
+f92(){s--;} 																	// DROP \
+f36(){i=st[s]; st[s]=st[s-1]; st[s-1]=i;}										// SWAP $
+f37(){i=st[s];st[s]=st[s-2];st[s-2]=st[s-1];st[s-1]=i;}							// OVER %
+
+/******************************************************************************************
+// Register Ops 
+f33(){st[v]=st[s]; s--; } 														// Store Reg !
+f64(){s++; st[s]=st[v]; }														// Fetch Reg @
+f63(){s++; st[s]=st[st[v]]; }													// Stack=Address of Variable ?
+f96(){st[st[v]]=st[s]; s--; }													// Address of Variable=Stack ` tick	
+												
+//******************************************************************************************
+// Input Output 
+f46(){printf("%d",st[s]); s--;} 												// . Print TOP as Signed Decimal 
+f44(){printf("%c",st[s]); s--; }												// , Print TOP as Character
+
+/******************************************************************************************
+fA() {r++; st[r]=p; p=st[u-35]; u=pr[p]; p--;}									// ALPHA
+f91(){r++; st[r]=p; if(st[s]==0){p++;u=pr[p]; while(u!=']'){ p++; u=pr[p];}}}	// WHILE [ ]
+f93(){if(st[s]!=0) p=st[r]; else r--; s--; }									// JUMP  ]
+f94(){if((c=getc(stdin))==EOF) { c=0; } s++; st[s]=c; }							// KEY
+f96(){putc(u,stdout);} fa(){k=1; v=u-97; }										// VAR  `
+
+//******************************************************************************************
+// Function Definition
+
+f58(){f=pr[p+1]-35;st[f]=p+2;while(u!=';'){p++;u=pr[p];}}						// DEF Fn : Call
+f59(){p=st[r];r--;}																// END Fn ; Return
+f125() {st[s]=st[r]; r--;}														// FmR {
+f123() {r++; st[r]=st[s];}														// ToR }
+
+//******************************************************************************************
+int (*q[127])()={
+N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,
+f33,f34,f35,f36,f37,f38,f39,f40,N,f42,f43,f44,f45,f46,f47,
+f9,f9,f9,f9,f9,f9,f9,f9,f9,f9,
+f58,f59,f60,f61,f62,f63,f64,
+fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,fA,
+f91,f92,f93,f94,f95,f96,
+fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,fa,
+f123,f124,f125,f126};
+
+ int main(int argc,char *argv[]){ FILE *be; 
+ if (!(be=fopen(argv[1],"rb"))) {printf("pr?\n"); return 0;}
+ while((c=fgetc(be))!=EOF){ pr[p++]=c; } 
+ fclose(be); mx=p; i=1999; while(i--){ st[i]=0;}  
+ for(i=0;i<argc;i++) if(i>1) st[i-2]=atoi(argv[i]);
+ p=0; s=100; r=60; 
+ while(p<=mx){ u=pr[p]; q[u](); if(u<'a')k=0; else if(u>'z')k=0; p++;} return 0;}
